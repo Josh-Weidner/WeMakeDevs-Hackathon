@@ -1,0 +1,53 @@
+# The ingest/embedding worker. This is the service we break on purpose in the demo
+# (see deploy/k8s/overlays/chaos and `make break-worker`).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: confy
+    app.kubernetes.io/version: IMAGE_TAG
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+        app.kubernetes.io/part-of: confy
+        app.kubernetes.io/version: IMAGE_TAG
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: worker
+          image: confy-worker:IMAGE_TAG
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: health, containerPort: 4001 }
+          envFrom:
+            - secretRef: { name: confy-secrets }
+            - configMapRef: { name: confy-config }
+          env:
+            - { name: OTEL_SERVICE_NAME, value: confy-worker }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "service.namespace=confy,service.version=IMAGE_TAG,deployment.environment=kind" }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
