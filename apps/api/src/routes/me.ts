@@ -1,7 +1,10 @@
 import { MeResponse } from "@confy/shared/contracts";
 import type { FastifyInstance } from "fastify";
+import type { MeService } from "../services/me.js";
 
-/** Echoes the active demo persona; used by the web persona switcher. */
-export async function meRoutes(app: FastifyInstance) {
-  app.get("/me", async (request) => MeResponse.parse({ userId: request.userId }));
+/** The active demo persona and its opt-in profile links (persona switcher, share-your-LinkedIn QR). */
+export function meRoutes(me: MeService) {
+  return async (app: FastifyInstance) => {
+    app.get("/me", async (request) => MeResponse.parse(await me.get(request.userId)));
+  };
 }

@@ -9,6 +9,8 @@ export function fakeContainer(esUp = true, services: Partial<Container["services
     logger: createLogger("test", "silent"),
     services: {
       health: createHealthService({ service: "confy-api", checks: { elasticsearch: async () => esUp } }),
+      // No profile by default: /v1/me echoes the persona id, as before.
+      me: { get: async (userId: string) => ({ userId }) },
       demand: { forecast: unused("demand.forecast"), recordBookmark: unused("demand.recordBookmark"), recordSearchHits: () => undefined, refresh: async () => undefined, latest: () => [] },
       talks: { search: unused("talks.search"), suggest: unused("talks.suggest"), get: unused("talks.get") },
       schedule: { build: unused("schedule.build") },
