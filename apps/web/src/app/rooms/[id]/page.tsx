@@ -1,4 +1,5 @@
 import { Accessibility, ArrowLeft, Armchair, Layers, Moon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +10,11 @@ import { RoomSessions } from "@/features/rooms/RoomSessions";
 import { fetchDemand, fetchRoom, fetchRoomTalks } from "@/features/rooms/data";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { sessionsByDay } from "@/lib/rooms/crowd";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const room = await fetchRoom((await params).id);
+  return { title: room?.name ?? "Room not found" };
+}
 
 export default async function RoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -1,5 +1,7 @@
 import type { ScheduleItem, ScheduleResponse } from "@confy/shared/contracts";
 import { Accessibility, MapPin, Moon, Video } from "lucide-react";
+import { BookmarkButton } from "@/components/BookmarkButton";
+import { TalkLink } from "@/components/TalkLink";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,9 @@ function TalkCard({ item }: { item: ScheduleItem }) {
         </p>
 
         <div className="grid gap-2">
-          <h4 className="text-base leading-snug font-semibold">{item.title}</h4>
+          <h4 className="text-base leading-snug font-semibold">
+            <TalkLink id={item.talk_id}>{item.title}</TalkLink>
+          </h4>
           <p className="text-sm text-muted-foreground">{item.speaker_names.join(", ")}</p>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="secondary">{levelLabel(item.level)}</Badge>
@@ -50,6 +54,9 @@ function TalkCard({ item }: { item: ScheduleItem }) {
               )}
             </div>
           )}
+          <div>
+            <BookmarkButton talkId={item.talk_id} title={item.title} />
+          </div>
         </div>
       </CardContent>
     </Card>
