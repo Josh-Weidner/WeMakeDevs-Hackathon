@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { LikelyFull } from "@/features/rooms/LikelyFull";
 import { PersonaSwitcher } from "@/features/persona/PersonaSwitcher";
 import { SystemStatus } from "@/features/system-status/SystemStatus";
+import { DemandRail } from "./DemandRail";
 import { MobileNav } from "./MobileNav";
 import { NavLinks } from "./NavLinks";
 
@@ -54,9 +55,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main id="main" tabIndex={-1} className="min-w-0 outline-none">
             {children}
           </main>
-          <aside aria-label="Live room demand" className="xl:sticky xl:top-24 xl:self-start">
+          <DemandRail>
             <LikelyFull />
-          </aside>
+          </DemandRail>
         </div>
       </div>
     </div>
