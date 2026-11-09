@@ -18,6 +18,7 @@ import { createClipsService, type ClipsService } from "./services/clips.js";
 import { createContactsService, type ContactsService } from "./services/contacts.js";
 import { createDemandService, type DemandService } from "./services/demand.js";
 import { createHealthService, type HealthService } from "./services/health.js";
+import { createMeService, type MeService } from "./services/me.js";
 import { createPeopleService, type PeopleService } from "./services/people.js";
 import { createScheduleService, type ScheduleService } from "./services/schedule.js";
 import { createRoomsService, type RoomsService } from "./services/rooms.js";
@@ -30,6 +31,7 @@ export interface Container {
   logger: Logger;
   services: {
     health: HealthService;
+    me: MeService;
     demand: DemandService;
     talks: TalksService;
     rooms: RoomsService;
@@ -80,6 +82,7 @@ export function createContainer(config: ApiConfig): Container {
       talks: createTalksService({ talks: talksRepo, ai, logger, demand, metrics }),
       rooms: createRoomsService({ rooms: roomsRepo }),
       schedule: createScheduleService({ talks: talksRepo, rooms: roomsRepo, demand, ai, logger, metrics }),
+      me: createMeService({ people: peopleRepo, logger }),
       people: createPeopleService({ people: peopleRepo, ai, logger, metrics }),
       contacts: createContactsService({ contacts: createContactsRepository(es), people: peopleRepo, ai, logger, metrics }),
       clips: createClipsService({ ai, jobs: createJobsRepository(es), clips: createClipsRepository(es), logger, metrics }),

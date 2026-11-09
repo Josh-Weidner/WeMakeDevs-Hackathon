@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CLIP_SAMPLE_RATE, RollingPcmBuffer, encodeWav } from "@/lib/audio/clip-buffer";
+import { planClipSave } from "@/lib/audio/clip-save";
 
 export const BUFFER_SECONDS = 300;
 
@@ -68,11 +69,14 @@ export function useClipRecorder() {
     }
   }, []);
 
-  /** WAV of the last `wantSeconds` (or all that's buffered). Null when nothing is buffered. */
-  const take = useCallback((wantSeconds: number): { blob: Blob; seconds: number } | null => {
-    const samples = buffer.current.last(wantSeconds);
-    if (samples.length === 0) return null;
-    return { blob: encodeWav(samples), seconds: Math.max(1, Math.round(samples.length / CLIP_SAMPLE_RATE)) };
+  /**
+   * WAV of the last `wantSeconds`, or of everything buffered if there's less (10 s of listening + "Save
+   * last 1 min" saves those 10 s). Null when under a second is buffered.
+   */
+  const take = useCallback((wantSeconds: number): { blob: Blob; seconds: number; partial: boolean } | null => {
+    const plan = planClipSave(wantSeconds, buffer.current.seconds);
+    if (!plan) return null;
+    return { blob: encodeWav(buffer.current.last(plan.seconds)), seconds: plan.seconds, partial: plan.partial };
   }, []);
 
   // Visible timer only (not a live region: announcing every second would be noise).
