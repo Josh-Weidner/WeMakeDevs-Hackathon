@@ -32,8 +32,16 @@ export interface NewJob {
   traceparent?: string;
 }
 
+export interface JobState {
+  type: string;
+  status: "pending" | "processing" | "done" | "failed";
+  payload: unknown;
+}
+
 export interface JobsRepository extends JobSource {
   enqueue(jobs: NewJob[]): Promise<number>;
+  /** One job's state, or null if it doesn't exist. Callers check ownership in the payload. */
+  get(id: string): Promise<JobState | null>;
   /** Jobs waiting or in progress: feeds the `confy.jobs.backlog` metric. */
   backlog(): Promise<number>;
 }
@@ -43,6 +51,11 @@ export interface JobsRepositoryOptions {
   leaseMs?: number;
   maxAttempts?: number;
   now?: () => Date;
+  /**
+   * Only claim jobs of these types (the worker passes the types it has handlers for). Without it, a worker
+   * on older code would claim a newer job type, fail it as "no handler", and burn its attempts.
+   */
+  types?: readonly string[];
 }
 
 export const JOB_LEASE_MS = 120_000;
@@ -115,6 +128,17 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
       return jobs.length;
     },
 
+    async get(id) {
+      try {
+        const res = await es.get<JobDoc>({ index: INDEX.jobs, id });
+        const source = res._source;
+        return source ? { type: source.type, status: source.status, payload: source.payload } : null;
+      } catch (err) {
+        if ((err as { statusCode?: number }).statusCode === 404) return null;
+        throw err;
+      }
+    },
+
     async backlog() {
       const res = await es.count({ index: INDEX.jobs, query: { terms: { status: ["pending", "processing"] } } });
       return res.count;
@@ -129,6 +153,7 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
         sort: [{ "@timestamp": "asc" }],
         query: {
           bool: {
+            ...(options.types ? { filter: [{ terms: { type: [...options.types] } }] } : {}),
             minimum_should_match: 1,
             should: [
               { term: { status: "pending" } },

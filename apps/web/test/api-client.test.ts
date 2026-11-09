@@ -66,3 +66,35 @@ describe("api client", () => {
     await expect(api.get("/v1/me", MeResponse)).rejects.toThrow();
   });
 });
+
+describe("api upload", () => {
+  it("posts the raw blob with its own content-type and the persona header", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(202, { userId: "demo-sam" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const blob = new Blob([new Uint8Array([1, 2])], { type: "audio/wav" });
+    await expect(api.upload("/v1/clips?durationS=60", MeResponse, blob, { userId: "demo-sam" })).resolves.toEqual({ userId: "demo-sam" });
+    const init = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(blob);
+    expect((init.headers as Record<string, string>)["content-type"]).toBe("audio/wav");
+    expect((init.headers as Record<string, string>)["x-user-id"]).toBe("demo-sam");
+  });
+
+  it("falls back to octet-stream and the demo persona, and surfaces api errors", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json(413, { error: { code: "payload_too_large", message: "Too big" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const err = await api.upload("/v1/clips", MeResponse, new Blob([new Uint8Array([1])])).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiRequestError);
+    expect((err as ApiRequestError).code).toBe("payload_too_large");
+    const headers = (fetchMock.mock.calls[0]![1] as RequestInit).headers as Record<string, string>;
+    expect(headers["content-type"]).toBe("application/octet-stream");
+    expect(headers["x-user-id"]).toBeTruthy();
+  });
+
+  it("reports a generic error when the failure body isn't the error contract", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("gateway", { status: 502 })));
+    const err = (await api.upload("/v1/clips", MeResponse, new Blob(["x"])).catch((e: unknown) => e)) as ApiRequestError;
+    expect(err.code).toBe("http_error");
+    expect(err.status).toBe(502);
+  });
+});

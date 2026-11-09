@@ -22,7 +22,7 @@ export interface ContactsService {
 }
 
 export function createContactsService(deps: {
-  contacts: ContactsRepository;
+  contacts: Pick<ContactsRepository, "search" | "list" | "get">;
   people: Pick<PeopleRepository, "getProfile">;
   ai: Pick<AiClient, "embed" | "chatJson">;
   logger: Logger;

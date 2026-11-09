@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ClipKind, ClipPerson, ClipResult } from "./clips.js";
 
 /**
  * Elasticsearch document shapes (the `_source` of each index). They mirror the strict mappings in
@@ -80,7 +81,8 @@ export type AttendeeDoc = z.infer<typeof AttendeeDoc>;
 
 export const ContactDoc = z.strictObject({
   owner_id: z.string(),
-  attendee_id: z.string(),
+  /** Set for contacts made with a known attendee; absent for people captured from a Clip. */
+  attendee_id: z.string().optional(),
   contact_name: z.string(),
   role: z.string(),
   company: z.string(),
@@ -101,3 +103,31 @@ export const ResourceDoc = z.strictObject({
   tags: z.array(z.string()).min(1),
 });
 export type ResourceDoc = z.infer<typeof ResourceDoc>;
+
+/** PRIVATE per user. Only created when the user taps Save. There is no audio field: audio is never stored. */
+export const ClipDoc = z.strictObject({
+  owner_id: z.string(),
+  kind: ClipKind,
+  duration_s: z.number().int().min(1),
+  transcript: z.string(),
+  summary: z.string(),
+  talk_id: z.string().optional(),
+  entities: ClipPerson.optional(),
+  contact_id: z.string().optional(),
+  highlight_id: z.string().optional(),
+  result: ClipResult,
+  "@timestamp": z.iso.datetime({ offset: true }),
+});
+export type ClipDoc = z.infer<typeof ClipDoc>;
+
+/** PRIVATE per user. From Clip (or, later, Talk) mode. */
+export const HighlightDoc = z.strictObject({
+  owner_id: z.string(),
+  talk_id: z.string().optional(),
+  text: z.string(),
+  topic_tags: z.array(z.string()),
+  experiment: z.string().optional(),
+  resource_ids: z.array(z.string()),
+  "@timestamp": z.iso.datetime({ offset: true }),
+});
+export type HighlightDoc = z.infer<typeof HighlightDoc>;

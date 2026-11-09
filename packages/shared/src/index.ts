@@ -18,3 +18,5 @@ export * from "./es/repositories/rooms.js";
 export * from "./es/repositories/people.js";
 export * from "./es/repositories/contacts.js";
 export * from "./es/repositories/demand.js";
+export * from "./es/repositories/clips.js";
+export * from "./es/repositories/resources.js";

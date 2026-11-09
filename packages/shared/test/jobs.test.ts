@@ -119,4 +119,10 @@ describe("jobs repository: enqueue", () => {
     es.bulk.mockResolvedValue({ errors: true, items: [{ index: { error: { type: "mapper_parsing_exception", reason: "bad" } } }] });
     await expect(repo.enqueue([{ id: "a", type: "t", payload: {} }])).rejects.toThrow(/mapper_parsing_exception: bad/);
   });
+
+  it("claims only the job types it was told it can handle", async () => {
+    const es = { search: vi.fn().mockResolvedValue({ hits: { hits: [] } }), update: vi.fn(), bulk: vi.fn() } as unknown as EsClient & { search: ReturnType<typeof vi.fn> };
+    await createJobsRepository(es, { now: () => NOW, types: ["embed-talk", "process-clip"] }).claimNext();
+    expect(es.search.mock.calls[0]![0].query.bool.filter).toEqual([{ terms: { type: ["embed-talk", "process-clip"] } }]);
+  });
 });
