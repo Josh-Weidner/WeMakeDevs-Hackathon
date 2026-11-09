@@ -4,13 +4,22 @@ SHELL := /bin/bash
 CLUSTER ?= confy
 NS      ?= confy
 TAG     ?= $(shell git rev-parse --short HEAD)
+# Branch Argo CD tracks. Merged PRs on main are what deploys.
+REVISION ?= main
 APPS    := api worker web
+# BuildKit builder (the Dockerfiles use RUN --mount). Falls back to OrbStack's bundled
+# docker-buildx when the docker CLI has no buildx plugin (or docker isn't on PATH).
+ORB_XBIN := /Applications/OrbStack.app/Contents/MacOS/xbin
+BUILDX ?= $(shell if docker buildx version >/dev/null 2>&1; then echo "docker buildx"; \
+  elif command -v docker-buildx >/dev/null 2>&1; then echo docker-buildx; \
+  elif [ -x $(ORB_XBIN)/docker-buildx ]; then echo $(ORB_XBIN)/docker-buildx; \
+  else echo "docker buildx"; fi)
 # Only these .env keys go into the k8s Secret (everything else is ConfigMap).
 SECRET_KEYS := ELASTICSEARCH_URL|ELASTICSEARCH_API_KEY|OPENAI_API_KEY|OTEL_EXPORTER_OTLP_ENDPOINT|OTEL_EXPORTER_OTLP_HEADERS
 
 render = kubectl kustomize $(1) | sed "s/IMAGE_TAG/$(TAG)/g"
 
-.PHONY: help cluster secrets images kind-load deploy up break-worker fix-worker status port-forward logs-% destroy
+.PHONY: help cluster secrets images kind-load deploy argocd up break-worker fix-worker status port-forward logs-% destroy
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_%-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n",$$1,$$2}'
@@ -26,7 +35,7 @@ secrets: ## Create/update the confy-secrets Secret from .env (never committed)
 	  --dry-run=client -o yaml | kubectl apply -f -
 
 images: ## Build all images tagged with the git SHA
-	for app in $(APPS); do docker build -f apps/$$app/Dockerfile -t confy-$$app:$(TAG) . ; done
+	for app in $(APPS); do $(BUILDX) build --load -f apps/$$app/Dockerfile -t confy-$$app:$(TAG) . ; done
 
 kind-load: ## Load images into the kind cluster
 	for app in $(APPS); do kind load docker-image confy-$$app:$(TAG) --name $(CLUSTER) ; done
@@ -34,6 +43,9 @@ kind-load: ## Load images into the kind cluster
 deploy: images kind-load ## Build, load, and apply the base manifests
 	$(call render,deploy/k8s/base) | kubectl apply -f -
 	kubectl -n $(NS) rollout status deploy/api deploy/web --timeout=120s
+
+argocd: ## Point Argo CD at this repo (tracks REVISION, runs images tagged TAG)
+	sed -e "s/IMAGE_TAG/$(TAG)/g" -e "s|TARGET_REVISION|$(REVISION)|g" deploy/argocd/confy.yaml | kubectl apply -f -
 
 up: cluster secrets deploy ## Everything from zero
 

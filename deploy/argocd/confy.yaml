@@ -1,0 +1,39 @@
+# Argo CD Application: syncs deploy/k8s/base from this repo into the `confy` namespace.
+# Apply with `make argocd` (it fills in IMAGE_TAG and TARGET_REVISION).
+#
+# selfHeal is deliberately OFF: `make break-worker` drifts the live cluster on purpose so
+# Radar can investigate. With selfHeal off, Argo leaves the drift alone and shows OutOfSync.
+# The next commit on the tracked branch (the fix PR) triggers an auto-sync back to healthy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: confy
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: confy
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Josh-Weidner/WeMakeDevs-Hackathon.git
+    targetRevision: TARGET_REVISION
+    path: deploy/k8s/base
+    kustomize:
+      # Images are built locally (`make images`). OrbStack/kind nodes use them via IfNotPresent.
+      images:
+        - confy-api=confy-api:IMAGE_TAG
+        - confy-worker=confy-worker:IMAGE_TAG
+        - confy-web=confy-web:IMAGE_TAG
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: confy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+  ignoreDifferences:
+    # confy-secrets is created out-of-band by `make secrets` and is never in git.
+    - kind: Secret
+      name: confy-secrets
+      jsonPointers: [/data]
