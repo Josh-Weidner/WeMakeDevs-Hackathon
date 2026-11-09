@@ -15,7 +15,7 @@ export interface ContactsService {
 }
 
 export function createContactsService(deps: {
-  contacts: ContactsRepository;
+  contacts: Pick<ContactsRepository, "search">;
   ai: Pick<AiClient, "embed">;
   logger: Logger;
   metrics?: Pick<ProductMetrics, "recordAiError">;

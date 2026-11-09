@@ -1,6 +1,8 @@
 import {
   createAiClient,
+  createClipsRepository,
   createContactsRepository,
+  createJobsRepository,
   createDemandRepository,
   createProductMetrics,
   createEsClient,
@@ -12,6 +14,7 @@ import {
   type Logger,
 } from "@confy/shared";
 import type { ApiConfig } from "./config.js";
+import { createClipsService, type ClipsService } from "./services/clips.js";
 import { createContactsService, type ContactsService } from "./services/contacts.js";
 import { createDemandService, type DemandService } from "./services/demand.js";
 import { createHealthService, type HealthService } from "./services/health.js";
@@ -33,6 +36,7 @@ export interface Container {
     schedule: ScheduleService;
     people: PeopleService;
     contacts: ContactsService;
+    clips: ClipsService;
   };
   close(): Promise<void>;
 }
@@ -45,7 +49,11 @@ export function createContainer(config: ApiConfig): Container {
   const logger = createLogger("confy-api", config.LOG_LEVEL);
   const es = createEsClient({ url: config.ELASTICSEARCH_URL, apiKey: config.ELASTICSEARCH_API_KEY });
 
-  const ai = createAiClient({ apiKey: config.OPENAI_API_KEY, ...(config.OPENAI_CHAT_MODEL ? { chatModel: config.OPENAI_CHAT_MODEL } : {}) });
+  const ai = createAiClient({
+    apiKey: config.OPENAI_API_KEY,
+    ...(config.OPENAI_CHAT_MODEL ? { chatModel: config.OPENAI_CHAT_MODEL } : {}),
+    ...(config.OPENAI_TRANSCRIBE_MODEL ? { transcribeModel: config.OPENAI_TRANSCRIBE_MODEL } : {}),
+  });
 
   const metrics = createProductMetrics("confy-api");
   const talksRepo = createTalksRepository(es);
@@ -73,6 +81,7 @@ export function createContainer(config: ApiConfig): Container {
       schedule: createScheduleService({ talks: talksRepo, rooms: roomsRepo, demand, ai, logger, metrics }),
       people: createPeopleService({ people: createPeopleRepository(es), ai, logger, metrics }),
       contacts: createContactsService({ contacts: createContactsRepository(es), ai, logger, metrics }),
+      clips: createClipsService({ ai, jobs: createJobsRepository(es), clips: createClipsRepository(es), logger, metrics }),
     },
     close: () => {
       clearInterval(refresher);

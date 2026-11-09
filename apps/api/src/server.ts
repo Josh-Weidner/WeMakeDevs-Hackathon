@@ -3,6 +3,7 @@ import type { Container } from "./container.js";
 import { registerErrorHandler } from "./errors.js";
 import { registerUserContext } from "./plugins/user-context.js";
 import { healthRoutes } from "./routes/health.js";
+import { clipsRoutes } from "./routes/clips.js";
 import { contactsRoutes } from "./routes/contacts.js";
 import { demandRoutes } from "./routes/demand.js";
 import { meRoutes } from "./routes/me.js";
@@ -31,7 +32,8 @@ export async function buildServer(container: Container): Promise<FastifyInstance
       await v1.register(roomsRoutes(container.services.rooms));
       await v1.register(peopleRoutes(container.services.people));
       await v1.register(contactsRoutes(container.services.contacts));
-      // Still to come: clips, intros
+      await v1.register(clipsRoutes(container.services.clips));
+      // Still to come: intros
     },
     { prefix: "/v1" },
   );

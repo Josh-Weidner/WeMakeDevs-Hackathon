@@ -15,6 +15,7 @@ export function fakeContainer(esUp = true, services: Partial<Container["services
       rooms: { list: unused("rooms.list"), get: unused("rooms.get") },
       people: { match: unused("people.match") },
       contacts: { search: unused("contacts.search") },
+      clips: { upload: unused("clips.upload"), status: unused("clips.status") },
       ...services,
     },
     close: async () => undefined,

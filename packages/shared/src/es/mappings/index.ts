@@ -108,6 +108,10 @@ export const MAPPINGS: Record<Exclude<IndexAlias, typeof INDEX.demandEvents>, Ma
       dynamic: "strict",
       properties: { name: textWithKeyword(), role: text(), company: textWithKeyword() },
     },
+    contact_id: keyword(),
+    highlight_id: keyword(),
+    /** The rendered result (LinkedIn draft, experiment, resources): returned to the owner, never searched. */
+    result: { type: "object", enabled: false },
     "@timestamp": date(),
     embedding: embedding(),
   }),

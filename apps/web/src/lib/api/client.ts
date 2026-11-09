@@ -54,7 +54,25 @@ async function request<S extends z.ZodType>(
   return schema.parse(json);
 }
 
+/** Raw binary upload (e.g. a Clip's audio). The body's own type becomes the content-type. */
+async function upload<S extends z.ZodType>(path: `/${string}`, schema: S, body: Blob, options: RequestOptions = {}): Promise<z.infer<S>> {
+  const res = await fetch(`${apiBaseUrl()}${path}`, {
+    method: "POST",
+    headers: { accept: "application/json", "content-type": body.type || "application/octet-stream", [USER_ID_HEADER]: options.userId ?? DEFAULT_DEMO_USER_ID },
+    body,
+    signal: options.signal,
+    cache: "no-store",
+  });
+  const json: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const parsed = ApiError.safeParse(json);
+    throw new ApiRequestError(res.status, parsed.success ? parsed.data.error.code : "http_error", parsed.success ? parsed.data.error.message : `Request failed (${res.status})`);
+  }
+  return schema.parse(json);
+}
+
 export const api = {
+  upload,
   get: <S extends z.ZodType>(path: `/${string}`, schema: S, options?: RequestOptions) =>
     request("GET", path, schema, undefined, options),
   post: <S extends z.ZodType>(path: `/${string}`, schema: S, body: unknown, options?: RequestOptions) =>

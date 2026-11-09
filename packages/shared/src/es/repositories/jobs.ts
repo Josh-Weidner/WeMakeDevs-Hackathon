@@ -32,8 +32,16 @@ export interface NewJob {
   traceparent?: string;
 }
 
+export interface JobState {
+  type: string;
+  status: "pending" | "processing" | "done" | "failed";
+  payload: unknown;
+}
+
 export interface JobsRepository extends JobSource {
   enqueue(jobs: NewJob[]): Promise<number>;
+  /** One job's state, or null if it doesn't exist. Callers check ownership in the payload. */
+  get(id: string): Promise<JobState | null>;
   /** Jobs waiting or in progress: feeds the `confy.jobs.backlog` metric. */
   backlog(): Promise<number>;
 }
@@ -113,6 +121,17 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
         throw new Error(`Failed to enqueue jobs: ${first?.type}: ${first?.reason}`);
       }
       return jobs.length;
+    },
+
+    async get(id) {
+      try {
+        const res = await es.get<JobDoc>({ index: INDEX.jobs, id });
+        const source = res._source;
+        return source ? { type: source.type, status: source.status, payload: source.payload } : null;
+      } catch (err) {
+        if ((err as { statusCode?: number }).statusCode === 404) return null;
+        throw err;
+      }
     },
 
     async backlog() {

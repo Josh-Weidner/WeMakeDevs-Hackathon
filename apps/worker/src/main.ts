@@ -1,6 +1,11 @@
 import {
   createAiClient,
+  createClipsRepository,
+  createContactsRepository,
   createEmbeddingStore,
+  createHighlightsRepository,
+  createResourcesRepository,
+  createTalksRepository,
   createEsClient,
   createJobsRepository,
   createLogger,
@@ -32,8 +37,15 @@ backlogTimer.unref();
 
 const handlers = createHandlers({
   store: createEmbeddingStore(es),
-  ai: createAiClient({ apiKey: config.OPENAI_API_KEY }),
+  ai: createAiClient({ apiKey: config.OPENAI_API_KEY, ...(config.OPENAI_CHAT_MODEL ? { chatModel: config.OPENAI_CHAT_MODEL } : {}) }),
   metrics,
+  clipRepos: {
+    clips: createClipsRepository(es),
+    contacts: createContactsRepository(es),
+    highlights: createHighlightsRepository(es),
+    resources: createResourcesRepository(es),
+    talks: createTalksRepository(es),
+  },
 });
 
 const loop = createJobLoop({

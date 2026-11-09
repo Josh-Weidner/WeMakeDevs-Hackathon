@@ -120,7 +120,7 @@ describe("demo query: the person from the eBPF talk who worked at a bank", () =>
     const attendeeIds = new Set(data.attendees.map((a) => a._id));
     for (const c of data.contacts) {
       expect(DEMO_PERSONAS).toContain(c._source.owner_id);
-      expect(attendeeIds.has(c._source.attendee_id)).toBe(true);
+      expect(attendeeIds.has(c._source.attendee_id ?? "")).toBe(true); // seeded contacts always have one
       expect(c._source.attendee_id).not.toBe(c._source.owner_id);
     }
     for (const p of DEMO_PERSONAS) expect(attendeeIds.has(p)).toBe(true);

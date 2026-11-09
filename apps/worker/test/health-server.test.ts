@@ -59,8 +59,13 @@ describe("worker defaults", () => {
     await expect(
       emptyJobSource.fail({ id: "1", type: "t", payload: {}, attempts: 0 }, "e"),
     ).resolves.toBeUndefined();
-    const handlers = createHandlers({ store: { get: async () => null, setEmbedding: async () => undefined }, ai: { embed: async () => [] } });
-    expect(Object.keys(handlers).sort()).toEqual(["embed-attendee", "embed-contact", "embed-resource", "embed-speaker", "embed-talk"]);
+    const unused = () => Promise.reject(new Error("unused"));
+    const handlers = createHandlers({
+      store: { get: async () => null, setEmbedding: async () => undefined },
+      ai: { embed: async () => [], chatJson: unused },
+      clipRepos: { clips: { save: unused }, contacts: { save: unused }, highlights: { save: unused }, resources: { search: unused }, talks: { search: unused, get: unused } },
+    });
+    expect(Object.keys(handlers).sort()).toEqual(["embed-attendee", "embed-contact", "embed-resource", "embed-speaker", "embed-talk", "process-clip"]);
   });
 
   it("loads config with defaults", () => {

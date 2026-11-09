@@ -14,12 +14,18 @@ export interface ContactSearchParams {
 
 export interface ContactsRepository {
   search(params: ContactSearchParams): Promise<ContactResult[]>;
+  /** Create or overwrite one contact (deterministic id). `owner_id` is required by the document schema. */
+  save(id: string, doc: ContactDoc, embedding?: number[]): Promise<void>;
 }
 
 const FIELDS = ["notes", "met_at_talk_title^2", "contact_name", "role", "company", "company_type^2"];
 
 export function createContactsRepository(es: EsClient): ContactsRepository {
   return {
+    async save(id, doc, embedding) {
+      await es.index({ index: INDEX.contacts, id, document: { ...ContactDoc.parse(doc), ...(embedding ? { embedding } : {}) } });
+    },
+
     async search(p) {
       const body = buildHybridQuery({
         text: p.text,
