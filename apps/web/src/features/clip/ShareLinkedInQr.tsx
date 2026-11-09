@@ -69,31 +69,12 @@ export function LinkedInQrOnly({ url }: { url: string }) {
   );
 }
 
-export function ShareLinkedInQr() {
-  const { persona, share, setStored } = useLinkedInShare();
+export function ShareLinkedInQr({ persona, share, setStored }: ReturnType<typeof useLinkedInShare>) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState<string | null>(null);
   const [large, setLarge] = useState(false);
   const [copied, setCopied] = useState(false);
-  const inputId = useId();
-  const errorId = useId();
 
   const showForm = editing || !share;
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    const url = parseLinkedInUrl(draft);
-    if (!url) {
-      setDraftError("Enter your LinkedIn profile URL, starting with https://www.linkedin.com/");
-      return;
-    }
-    writeStored(persona.id, url);
-    setStored(url);
-    setDraft("");
-    setDraftError(null);
-    setEditing(false);
-  }
 
   function reset() {
     writeStored(persona.id, null);
@@ -160,38 +141,75 @@ export function ShareLinkedInQr() {
         )}
 
         {showForm && (
-          <form onSubmit={submit} noValidate className="grid max-w-md gap-2">
-            <Label htmlFor={inputId}>Your LinkedIn profile URL</Label>
-            <p className="text-sm text-muted-foreground">Kept on this device only.</p>
-            <Input
-              id={inputId}
-              type="url"
-              inputMode="url"
-              autoComplete="url"
-              placeholder="https://www.linkedin.com/in/your-name/"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-invalid={draftError ? true : undefined}
-              aria-describedby={draftError ? errorId : undefined}
-            />
-            {draftError && (
-              <p id={errorId} className="text-sm text-destructive">
-                {draftError}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button type="submit" size="sm">
-                Show QR code
-              </Button>
-              {share && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
+          <LinkedInUrlForm
+            personaId={persona.id}
+            setStored={setStored}
+            onSaved={() => setEditing(false)}
+            onCancel={share ? () => setEditing(false) : undefined}
+          />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+type LinkedInUrlFormProps = {
+  personaId: string;
+  setStored: ReturnType<typeof useLinkedInShare>["setStored"];
+  onSaved?: () => void;
+  onCancel?: () => void;
+};
+
+export function LinkedInUrlForm({ personaId, setStored, onSaved, onCancel }: LinkedInUrlFormProps) {
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const inputId = useId();
+  const errorId = useId();
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const url = parseLinkedInUrl(draft);
+    if (!url) {
+      setDraftError("Enter your LinkedIn profile URL, starting with https://www.linkedin.com/");
+      return;
+    }
+    writeStored(personaId, url);
+    setStored(url);
+    setDraft("");
+    setDraftError(null);
+    onSaved?.();
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="grid max-w-md gap-2">
+      <Label htmlFor={inputId}>Your LinkedIn profile URL</Label>
+      <p className="text-sm text-muted-foreground">Kept on this device only.</p>
+      <Input
+        id={inputId}
+        type="url"
+        inputMode="url"
+        autoComplete="url"
+        placeholder="https://www.linkedin.com/in/your-name/"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        aria-invalid={draftError ? true : undefined}
+        aria-describedby={draftError ? errorId : undefined}
+      />
+      {draftError && (
+        <p id={errorId} className="text-sm text-destructive">
+          {draftError}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="submit" size="sm">
+          Show QR code
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
   );
 }

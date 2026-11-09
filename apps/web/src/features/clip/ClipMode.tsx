@@ -11,7 +11,7 @@ import { ApiRequestError, api } from "@/lib/api/client";
 import { usePersona } from "@/lib/persona/PersonaProvider";
 import { BUFFER_SECONDS, useClipRecorder } from "./useClipRecorder";
 import { ClipCard, formatDuration } from "./ClipCard";
-import { LinkedInQrOnly, SHARE_QR_ID, ShareLinkedInQr, useLinkedInShare } from "./ShareLinkedInQr";
+import { LinkedInQrOnly, LinkedInUrlForm, SHARE_QR_ID, ShareLinkedInQr, useLinkedInShare } from "./ShareLinkedInQr";
 
 interface SavedClip {
   id: string;
@@ -25,7 +25,7 @@ interface SavedClip {
 export function ClipMode() {
   const { persona } = usePersona();
   const recorder = useClipRecorder();
-  const { share } = useLinkedInShare();
+  const linkedIn = useLinkedInShare();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clips, setClips] = useState<SavedClip[]>([]);
@@ -92,10 +92,10 @@ export function ClipMode() {
 
   return (
     <>
-      {/* Phone: nothing but the QR, start/stop, and save the last minute. */}
+      {/* Phone: the QR (or URL setup), start/stop, and save the last minute. */}
       <div className="flex flex-col items-stretch gap-6 md:hidden">
         <h1 className="sr-only">Clip</h1>
-        {share && <LinkedInQrOnly url={share.url} />}
+        {linkedIn.share ? <LinkedInQrOnly url={linkedIn.share.url} /> : <LinkedInUrlForm personaId={linkedIn.persona.id} setStored={linkedIn.setStored} />}
         <div className="grid gap-3">
           <Button type="button" size="lg" className="h-14 w-full text-base" variant={listening ? "outline" : "default"} aria-pressed={listening} disabled={recorder.state === "starting"} onClick={() => void toggle()}>
             {listening ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
@@ -221,7 +221,7 @@ export function ClipMode() {
           </CardFooter>
         </Card>
 
-        <ShareLinkedInQr />
+        <ShareLinkedInQr {...linkedIn} />
 
         {clips.length > 0 && (
           <section aria-labelledby="saved-clips" className="grid gap-4">
