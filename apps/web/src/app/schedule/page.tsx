@@ -15,7 +15,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
         title="Build your schedule"
         description="Tell Confy what you want in plain language. It picks talks that never overlap, warns you about rooms that will fill up, and can build a calmer day with real breaks."
       />
-      <ScheduleBuilder initialQuery={initialQuery} />
+      <ScheduleBuilder key={initialQuery ?? ""} initialQuery={initialQuery} />
     </>
   );
 }
