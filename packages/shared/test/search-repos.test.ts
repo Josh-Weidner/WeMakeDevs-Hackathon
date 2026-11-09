@@ -170,6 +170,32 @@ describe("people repository: requester profile", () => {
 describe("contacts repository", () => {
   const contact = { owner_id: "demo-alex", attendee_id: "a", contact_name: "Bo", role: "SRE", company: "Co", company_type: "bank", met_at_time: "2026-11-10T10:30:00-07:00", notes: "n" };
 
+  it("lists only the owner's contacts, newest first, without vectors or owner_id", async () => {
+    const search = searchOf([{ _id: "contact-alex-1", _score: null, _source: contact }]);
+    const out = await createContactsRepository({ search } as unknown as EsClient).list("demo-alex", 10);
+
+    const req = search.mock.calls[0]?.[0];
+    expect(JSON.stringify(req.query)).toContain('"owner_id":"demo-alex"');
+    expect(req.sort).toEqual([{ met_at_time: "desc" }]);
+    expect(req.size).toBe(10);
+    expect(req._source).toEqual({ excludes: ["embedding"] });
+    expect(out[0]).toMatchObject({ id: "contact-alex-1", contact_name: "Bo" });
+    expect(out[0]).not.toHaveProperty("owner_id");
+  });
+
+  it("gets one contact by id AND owner, so another persona's id finds nothing", async () => {
+    const search = vi.fn().mockResolvedValueOnce({ hits: { hits: [{ _id: "contact-alex-1", _score: 1, _source: contact }] } }).mockResolvedValueOnce({ hits: { hits: [] } });
+    const repo = createContactsRepository({ search } as unknown as EsClient);
+
+    await expect(repo.get("demo-alex", "contact-alex-1")).resolves.toMatchObject({ id: "contact-alex-1" });
+    const filter = search.mock.calls[0]?.[0].query.bool.filter;
+    expect(filter).toContainEqual({ ids: { values: ["contact-alex-1"] } });
+    expect(filter).toContainEqual({ term: { owner_id: "demo-alex" } });
+
+    await expect(repo.get("demo-sam", "contact-alex-1")).resolves.toBeNull();
+    expect(search.mock.calls[1]?.[0].query.bool.filter).toContainEqual({ term: { owner_id: "demo-sam" } });
+  });
+
   it("always filters on owner_id and never returns it", async () => {
     const search = searchOf([{ _id: "contact-alex-1", _score: 3, _source: contact }]);
     const out = await createContactsRepository({ search } as unknown as EsClient).search({ ownerId: "demo-alex", text: "bank", vector: vec, limit: 5 });

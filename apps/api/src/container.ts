@@ -57,6 +57,7 @@ export function createContainer(config: ApiConfig): Container {
 
   const metrics = createProductMetrics("confy-api");
   const talksRepo = createTalksRepository(es);
+  const peopleRepo = createPeopleRepository(es);
   const roomsRepo = createRoomsRepository(es);
   const demand = createDemandService({ demand: createDemandRepository(es), talks: talksRepo, rooms: roomsRepo, metrics, logger });
 
@@ -79,8 +80,8 @@ export function createContainer(config: ApiConfig): Container {
       talks: createTalksService({ talks: talksRepo, ai, logger, demand, metrics }),
       rooms: createRoomsService({ rooms: roomsRepo }),
       schedule: createScheduleService({ talks: talksRepo, rooms: roomsRepo, demand, ai, logger, metrics }),
-      people: createPeopleService({ people: createPeopleRepository(es), ai, logger, metrics }),
-      contacts: createContactsService({ contacts: createContactsRepository(es), ai, logger, metrics }),
+      people: createPeopleService({ people: peopleRepo, ai, logger, metrics }),
+      contacts: createContactsService({ contacts: createContactsRepository(es), people: peopleRepo, ai, logger, metrics }),
       clips: createClipsService({ ai, jobs: createJobsRepository(es), clips: createClipsRepository(es), logger, metrics }),
     },
     close: () => {
