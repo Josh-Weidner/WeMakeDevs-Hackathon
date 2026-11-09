@@ -1,7 +1,16 @@
 "use client";
 
 import { ScheduleResponse } from "@confy/shared/contracts";
+import { CircleAlert, LoaderCircle, Sparkles } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiRequestError, api } from "@/lib/api/client";
 import { usePersona } from "@/lib/persona/PersonaProvider";
 import { ScheduleResults } from "./ScheduleResults";
@@ -18,7 +27,7 @@ type State =
   | { phase: "error"; message: string }
   | { phase: "done"; schedule: ScheduleResponse };
 
-/** The landing experience: describe your day in plain language, get a clash-free schedule. */
+/** Describe your day in plain language, get a clash-free schedule. */
 export function ScheduleBuilder() {
   const { persona } = usePersona();
   const [request, setRequest] = useState("");
@@ -55,95 +64,115 @@ export function ScheduleBuilder() {
         : "";
 
   return (
-    <section aria-labelledby="builder-heading" className="card builder">
-      <h2 id="builder-heading">Build your schedule</h2>
-      <p className="muted">Describe what you want in your own words. We pick talks that never overlap.</p>
+    <div className="grid gap-8">
+      <Card>
+        <form onSubmit={build} noValidate className="grid gap-6">
+          <CardHeader>
+            <CardTitle>
+              <h2>Describe your day</h2>
+            </CardTitle>
+            <CardDescription>Use your own words. We only pick talks that never overlap.</CardDescription>
+          </CardHeader>
 
-      <form onSubmit={build} noValidate>
-        <div className="field">
-          <label htmlFor="schedule-request">What would you like to see?</label>
-          <textarea
-            id="schedule-request"
-            name="request"
-            rows={3}
-            maxLength={300}
-            value={request}
-            onChange={(event) => setRequest(event.target.value)}
-            aria-describedby="schedule-hint"
-            placeholder="e.g. Beginner talks on multi-tenancy, nothing vendor-pitchy"
-          />
-          <p id="schedule-hint" className="hint">
-            Mention a topic, a level, a day, or how many talks.
-          </p>
-        </div>
+          <CardContent className="grid gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="schedule-request">What would you like to see?</Label>
+              <Textarea
+                id="schedule-request"
+                name="request"
+                rows={3}
+                maxLength={300}
+                value={request}
+                onChange={(event) => setRequest(event.target.value)}
+                aria-describedby="schedule-hint"
+                aria-invalid={state.phase === "error" ? true : undefined}
+                placeholder="e.g. Beginner talks on multi-tenancy, nothing vendor-pitchy"
+              />
+              <p id="schedule-hint" className="text-sm text-muted-foreground">
+                Mention a topic, a level, a day, or how many talks.
+              </p>
+            </div>
 
-        <fieldset className="examples">
-          <legend>Or start from an example</legend>
-          <ul>
-            {EXAMPLES.map((example) => (
-              <li key={example}>
-                <button type="button" className="chip" onClick={() => setRequest(example)}>
-                  {example}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-medium">Or start from an example</legend>
+              <ul className="flex flex-wrap gap-2">
+                {EXAMPLES.map((example) => (
+                  <li key={example}>
+                    <Button type="button" variant="outline" size="sm" className="h-auto rounded-full py-1.5 whitespace-normal" onClick={() => setRequest(example)}>
+                      {example}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
 
-        <div className="field field--check">
-          <input
-            id="low-stim"
-            type="checkbox"
-            checked={lowStimulation}
-            onChange={(event) => setLowStimulation(event.target.checked)}
-            aria-describedby="low-stim-hint"
-          />
-          <div>
-            <label htmlFor="low-stim">Low-stimulation mode</label>
-            <p id="low-stim-hint" className="hint">
-              Adds breaks, avoids more than two talks in a row, prefers quieter rooms, and points you to the quiet room.
-            </p>
-          </div>
-        </div>
+            <div className="flex items-start gap-3 rounded-xl border p-4">
+              <Checkbox
+                id="low-stim"
+                checked={lowStimulation}
+                onCheckedChange={(checked) => setLowStimulation(checked === true)}
+                aria-describedby="low-stim-hint"
+                className="mt-0.5"
+              />
+              <div className="grid gap-1">
+                <Label htmlFor="low-stim">Low-stimulation mode</Label>
+                <p id="low-stim-hint" className="text-sm text-muted-foreground">
+                  Adds breaks, avoids more than two talks in a row, prefers quieter rooms, and points you to the quiet room.
+                </p>
+              </div>
+            </div>
+          </CardContent>
 
-        <button type="submit" className="button" disabled={loading} aria-describedby="build-status">
-          {loading ? "Building…" : "Build my schedule"}
-        </button>
-      </form>
+          <CardFooter>
+            <Button type="submit" size="lg" disabled={loading} aria-describedby="build-status">
+              {loading ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Sparkles aria-hidden="true" />}
+              {loading ? "Building…" : "Build my schedule"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
 
-      {/* Announced politely to assistive tech; visible text lives in the results below. */}
-      <p id="build-status" role="status" className="visually-hidden">
+      {/* Announced politely to assistive tech; the visible text lives in the results below. */}
+      <p id="build-status" role="status" className="sr-only">
         {status}
       </p>
 
       {state.phase === "error" && (
-        <p role="alert" className="error-message">
-          <span aria-hidden="true">✕ </span>
-          {state.message}
-        </p>
+        <Alert variant="destructive">
+          <CircleAlert aria-hidden="true" />
+          <AlertTitle>We couldn&apos;t build that</AlertTitle>
+          <AlertDescription>{state.message}</AlertDescription>
+        </Alert>
+      )}
+
+      {loading && (
+        <div aria-hidden="true" className="grid gap-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
       )}
 
       {state.phase === "done" && (
-        <div className="results" aria-busy={loading}>
-          <h3 ref={resultsHeading} tabIndex={-1} className="results__heading">
-            Your schedule{state.schedule.low_stimulation ? " (low-stimulation)" : ""}
-          </h3>
-          <p className="muted">
-            Understood as:{" "}
-            {[
-              state.schedule.parsed.query ? `topic “${state.schedule.parsed.query}”` : "any topic",
-              state.schedule.parsed.level ?? "any level",
-              state.schedule.parsed.excludeVendorPitch ? "no vendor pitches" : null,
-              state.schedule.parsed.day ? `on ${state.schedule.parsed.day}` : null,
-            ]
-              .filter(Boolean)
-              .join(", ")}
-            .
-            {state.schedule.interpreted_by === "fallback" && " (Simple matching was used because the assistant was unavailable.)"}
-          </p>
+        <section aria-labelledby="results-heading" className="grid gap-4">
+          <div className="grid gap-2">
+            <h2 id="results-heading" ref={resultsHeading} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
+              Your schedule{state.schedule.low_stimulation ? " (low-stimulation)" : ""}
+            </h2>
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+              <span>Understood as:</span>
+              <Badge variant="secondary">{state.schedule.parsed.query ? `topic “${state.schedule.parsed.query}”` : "any topic"}</Badge>
+              <Badge variant="secondary">{state.schedule.parsed.level ?? "any level"}</Badge>
+              {state.schedule.parsed.excludeVendorPitch && <Badge variant="secondary">no vendor pitches</Badge>}
+              {state.schedule.parsed.day && <Badge variant="secondary">on {state.schedule.parsed.day}</Badge>}
+            </div>
+            {state.schedule.interpreted_by === "fallback" && (
+              <p className="text-sm text-muted-foreground">Simple matching was used because the assistant was unavailable.</p>
+            )}
+          </div>
           <ScheduleResults schedule={state.schedule} />
-        </div>
+        </section>
       )}
-    </section>
+    </div>
   );
 }

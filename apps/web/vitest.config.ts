@@ -6,7 +6,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text-summary", "lcov"],
       include: ["src/lib/**/*.ts"],
-      exclude: ["src/lib/persona/**", "src/lib/telemetry/**"],
+      exclude: ["src/lib/persona/**", "src/lib/telemetry/**", "src/lib/utils.ts"],
     },
   },
 });
