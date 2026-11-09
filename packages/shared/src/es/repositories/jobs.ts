@@ -51,6 +51,11 @@ export interface JobsRepositoryOptions {
   leaseMs?: number;
   maxAttempts?: number;
   now?: () => Date;
+  /**
+   * Only claim jobs of these types (the worker passes the types it has handlers for). Without it, a worker
+   * on older code would claim a newer job type, fail it as "no handler", and burn its attempts.
+   */
+  types?: readonly string[];
 }
 
 export const JOB_LEASE_MS = 120_000;
@@ -148,6 +153,7 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
         sort: [{ "@timestamp": "asc" }],
         query: {
           bool: {
+            ...(options.types ? { filter: [{ terms: { type: [...options.types] } }] } : {}),
             minimum_should_match: 1,
             should: [
               { term: { status: "pending" } },

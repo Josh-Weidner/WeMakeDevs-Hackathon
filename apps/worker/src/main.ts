@@ -25,15 +25,6 @@ const logger = createLogger("confy-worker", config.LOG_LEVEL);
 const es = createEsClient({ url: config.ELASTICSEARCH_URL, apiKey: config.ELASTICSEARCH_API_KEY });
 
 const metrics = createProductMetrics("confy-worker");
-const jobs = createJobsRepository(es);
-
-// The backlog gauge reads a cached value (metric callbacks must not do I/O); a timer keeps it fresh.
-let backlog: number | undefined;
-metrics.observeBacklog(() => backlog);
-const refreshBacklog = () => jobs.backlog().then((n) => (backlog = n), (err: unknown) => logger.warn({ err }, "backlog refresh failed"));
-void refreshBacklog();
-const backlogTimer = setInterval(() => void refreshBacklog(), BACKLOG_REFRESH_MS);
-backlogTimer.unref();
 
 const handlers = createHandlers({
   store: createEmbeddingStore(es),
@@ -47,6 +38,17 @@ const handlers = createHandlers({
     talks: createTalksRepository(es),
   },
 });
+
+// Claim only what this build can handle, so workers on different versions can share one queue.
+const jobs = createJobsRepository(es, { types: Object.keys(handlers) });
+
+// The backlog gauge reads a cached value (metric callbacks must not do I/O); a timer keeps it fresh.
+let backlog: number | undefined;
+metrics.observeBacklog(() => backlog);
+const refreshBacklog = () => jobs.backlog().then((n) => (backlog = n), (err: unknown) => logger.warn({ err }, "backlog refresh failed"));
+void refreshBacklog();
+const backlogTimer = setInterval(() => void refreshBacklog(), BACKLOG_REFRESH_MS);
+backlogTimer.unref();
 
 const loop = createJobLoop({
   source: jobs,
