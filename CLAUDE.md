@@ -189,6 +189,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build   # same as CI
 make help                    # list all targets
 make up                      # kind cluster + secrets from .env + build/load images + deploy
 make status | make port-forward | make logs-<api|worker|web>
+make argocd                  # Argo CD Application "confy" syncs deploy/k8s/base from this repo (REVISION=<branch>, TAG=<sha>)
 make break-worker / make fix-worker   # demo chaos toggle (worker OOMKilled)
 make destroy                 # delete the kind cluster
 ```
