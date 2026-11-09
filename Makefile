@@ -31,8 +31,8 @@ cluster: ## Create the local kind cluster + namespace
 secrets: ## Create/update the confy-secrets Secret from .env (never committed)
 	@test -f .env || { echo "Missing .env: cp .env.example .env and fill it in"; exit 1; }
 	kubectl -n $(NS) create secret generic confy-secrets \
-	  --from-env-file=<(grep -E '^($(SECRET_KEYS))=' .env) \
-	  --dry-run=client -o yaml | kubectl apply -f -
+  --from-env-file=<(grep -E '^($(SECRET_KEYS))=' .env) \
+  --dry-run=client -o yaml | kubectl apply -f -
 
 images: ## Build all images tagged with the git SHA
 	for app in $(APPS); do $(BUILDX) build --load -f apps/$$app/Dockerfile -t confy-$$app:$(TAG) . ; done
@@ -56,10 +56,10 @@ release: ## Build images for origin/main and roll them out through Argo CD (run 
 	@# or `rollout status` would just report the previous, already-finished rollout.
 	@echo "release: waiting for Argo CD to apply $(TAG)..."; \
 	for i in $$(seq 1 60); do \
-	  imgs=$$(kubectl -n $(NS) get deploy $(APPS) -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'); \
-	  stale=$$(for img in $$imgs; do case "$$img" in *:$(TAG)) ;; *) echo "$$img";; esac; done); \
-	  [ -z "$$stale" ] && exit 0; sleep 2; \
-	done; echo "release: Argo CD did not apply $(TAG) within 120s (still: $$stale)"; exit 1
+	  imgs=$$(kubectl -n $(NS) get deploy $(APPS) -o jsonpath='{.items[*].spec.template.spec.containers[0].image}' 2>/dev/null); \
+	  ok=0; stale=; for img in $$imgs; do case "$$img" in *:$(TAG)) ok=$$((ok+1));; *) stale="$$stale $$img";; esac; done; \
+	  [ "$$ok" -eq $(words $(APPS)) ] && exit 0; sleep 2; \
+	done; echo "release: Argo CD did not apply $(TAG) within 120s (still:$$stale)"; exit 1
 	kubectl -n $(NS) rollout status $(addprefix deploy/,$(APPS)) --timeout=180s
 
 up: cluster secrets deploy ## Everything from zero
@@ -69,7 +69,7 @@ break-worker: ## DEMO: OOMKill the worker (patches only the live worker; Argo CD
 
 fix-worker: ## DEMO fallback: Argo CD sync back to git (the real fix is merging the fix PR)
 	kubectl -n argocd patch application confy --type merge \
-	  -p '{"operation":{"initiatedBy":{"username":"make fix-worker"},"sync":{"prune":true}}}'
+  -p '{"operation":{"initiatedBy":{"username":"make fix-worker"},"sync":{"prune":true}}}'
 	kubectl -n $(NS) rollout status deploy/worker --timeout=180s
 
 status: ## Pods in the confy namespace
