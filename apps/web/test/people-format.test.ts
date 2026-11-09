@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initials, introPreferenceLabel, subtitle } from "../src/lib/people/format";
+import { initials, introPreferenceLabel, safeLinkedInUrl, subtitle } from "../src/lib/people/format";
 
 describe("people formatting", () => {
   it("builds avatar initials from first and last name", () => {
@@ -22,5 +22,20 @@ describe("people formatting", () => {
 
   it("joins role and organization type", () => {
     expect(subtitle("Staff Engineer", "bank")).toBe("Staff Engineer · bank");
+  });
+});
+
+describe("safeLinkedInUrl", () => {
+  it("passes https LinkedIn links through", () => {
+    expect(safeLinkedInUrl("https://www.linkedin.com/search/results/people/?keywords=Rafael%20Costa")).toBe(
+      "https://www.linkedin.com/search/results/people/?keywords=Rafael%20Costa",
+    );
+    expect(safeLinkedInUrl("https://uk.linkedin.com/in/x")).toBe("https://uk.linkedin.com/in/x");
+  });
+
+  it("drops anything else: missing, other hosts, lookalikes, http, script URLs, junk", () => {
+    for (const bad of [null, undefined, "", "http://www.linkedin.com/in/x", "https://linkedin.com.evil.example/", "https://evil-linkedin.com/", "javascript:alert(1)", "not a url"]) {
+      expect(safeLinkedInUrl(bad)).toBeNull();
+    }
   });
 });

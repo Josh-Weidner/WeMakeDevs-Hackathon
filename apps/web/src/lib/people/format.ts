@@ -19,3 +19,19 @@ export function introPreferenceLabel(pref: "quiet" | "1:1"): string {
 export function subtitle(role: string, companyType: string): string {
   return `${role} · ${companyType}`;
 }
+
+/**
+ * Re-checks a LinkedIn link before it becomes an href (defense in depth: the api already validates it).
+ * Only https on linkedin.com; anything else, or anything malformed, yields null and no link is shown.
+ */
+export function safeLinkedInUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname;
+    if (url.protocol !== "https:") return null;
+    return host === "linkedin.com" || host.endsWith(".linkedin.com") ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
