@@ -17,6 +17,8 @@ export interface TalkSearchParams {
 export interface TalksRepository {
   search(params: TalkSearchParams): Promise<TalkResult[]>;
   get(id: string): Promise<TalkResult | null>;
+  /** Missing ids are skipped. */
+  getMany(ids: string[]): Promise<TalkResult[]>;
   suggest(prefix: string, limit: number): Promise<Array<{ id: string; title: string }>>;
 }
 
@@ -56,6 +58,14 @@ export function createTalksRepository(es: EsClient): TalksRepository {
         if ((err as { statusCode?: number }).statusCode === 404) return null;
         throw err;
       }
+    },
+
+    async getMany(ids) {
+      if (ids.length === 0) return [];
+      const res = await es.mget<unknown>({ index: INDEX.talks, ids, _source_excludes: ["embedding"] });
+      return res.docs.flatMap((d) =>
+        "found" in d && d.found ? [{ ...TalkDoc.parse(d._source), id: d._id, score: null }] : [],
+      );
     },
 
     async suggest(prefix, limit) {

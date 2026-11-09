@@ -2,6 +2,7 @@ import {
   withSpan,
   type AiClient,
   type Logger,
+  type ProductMetrics,
   type PeopleMatchQuery,
   type PeopleMatchResponse,
   type PeopleRepository,
@@ -16,11 +17,12 @@ export function createPeopleService(deps: {
   people: PeopleRepository;
   ai: Pick<AiClient, "embed">;
   logger: Logger;
+  metrics?: Pick<ProductMetrics, "recordAiError">;
 }): PeopleService {
   return {
     async match(userId, query) {
       return withSpan("confy.people.match", {}, async () => {
-        const vector = await embedQuery(deps.ai, deps.logger, query.q);
+        const vector = await embedQuery(deps.ai, deps.logger, query.q, deps.metrics);
         const matches = await deps.people.match({ excludeId: userId, text: query.q, vector, limit: query.limit });
         return { matches };
       });

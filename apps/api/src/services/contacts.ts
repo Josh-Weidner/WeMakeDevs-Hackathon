@@ -5,6 +5,7 @@ import {
   type ContactSearchResponse,
   type ContactsRepository,
   type Logger,
+  type ProductMetrics,
 } from "@confy/shared";
 import { embedQuery } from "./embed-query.js";
 
@@ -17,11 +18,12 @@ export function createContactsService(deps: {
   contacts: ContactsRepository;
   ai: Pick<AiClient, "embed">;
   logger: Logger;
+  metrics?: Pick<ProductMetrics, "recordAiError">;
 }): ContactsService {
   return {
     async search(userId, query) {
       return withSpan("confy.contacts.search", {}, async () => {
-        const vector = await embedQuery(deps.ai, deps.logger, query.q);
+        const vector = await embedQuery(deps.ai, deps.logger, query.q, deps.metrics);
         const results = await deps.contacts.search({ ownerId: userId, text: query.q, vector, limit: query.limit });
         return { results };
       });

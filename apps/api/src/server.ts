@@ -4,6 +4,7 @@ import { registerErrorHandler } from "./errors.js";
 import { registerUserContext } from "./plugins/user-context.js";
 import { healthRoutes } from "./routes/health.js";
 import { contactsRoutes } from "./routes/contacts.js";
+import { demandRoutes } from "./routes/demand.js";
 import { meRoutes } from "./routes/me.js";
 import { peopleRoutes } from "./routes/people.js";
 import { roomsRoutes } from "./routes/rooms.js";
@@ -23,11 +24,12 @@ export async function buildServer(container: Container): Promise<FastifyInstance
   await app.register(
     async (v1) => {
       await v1.register(meRoutes);
-      await v1.register(talksRoutes(container.services.talks));
+      await v1.register(talksRoutes(container.services.talks, container.services.demand));
+      await v1.register(demandRoutes(container.services.demand));
       await v1.register(roomsRoutes(container.services.rooms));
       await v1.register(peopleRoutes(container.services.people));
       await v1.register(contactsRoutes(container.services.contacts));
-      // Still to come: schedule, clips, demand, intros
+      // Still to come: schedule, clips, intros
     },
     { prefix: "/v1" },
   );

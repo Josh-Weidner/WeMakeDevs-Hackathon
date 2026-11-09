@@ -9,6 +9,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "build:shared": "pnpm --filter @confy/shared build",
+    "seed:demand": "pnpm build:shared && pnpm --filter @confy/seed demand",
     "seed:load": "pnpm build:shared && pnpm --filter @confy/seed load",
     "es:setup": "pnpm build:shared && node --env-file-if-exists=.env.local --env-file-if-exists=.env packages/shared/dist/es/setup-cli.js",
     "dev": "pnpm build:shared && pnpm --parallel --filter \"./apps/*\" dev",

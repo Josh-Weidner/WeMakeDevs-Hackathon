@@ -5,3 +5,4 @@ export * from "./health.js";
 export * from "./me.js";
 export * from "./documents.js";
 export * from "./search.js";
+export * from "./demand.js";

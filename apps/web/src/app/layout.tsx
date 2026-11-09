@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { RumInit } from "../lib/telemetry/RumInit";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,10 +9,18 @@ export const metadata: Metadata = {
   description: "Your all-in-one conference companion: find the right talks, people, and quiet spaces.",
 };
 
+// RUM settings are read at request time (k8s Secret), not baked into the build.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
+  // Public, ingest-only Dash0 token (separate from the backend one). RUM is skipped when unset.
+  const rumEndpoint = process.env.DASH0_RUM_ENDPOINT;
+  const rumToken = process.env.DASH0_RUM_TOKEN;
+
   return (
     <html lang="en">
       <body>
+        {rumEndpoint && rumToken ? <RumInit endpoint={rumEndpoint} authToken={rumToken} /> : null}
         <a className="skip-link" href="#main">
           Skip to main content
         </a>

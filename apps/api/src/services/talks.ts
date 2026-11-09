@@ -2,6 +2,7 @@ import {
   withSpan,
   type AiClient,
   type Logger,
+  type ProductMetrics,
   type TalkResult,
   type TalkSearchQuery,
   type TalkSearchResponse,
@@ -10,10 +11,11 @@ import {
   type TalksRepository,
 } from "@confy/shared";
 import { NotFoundError } from "../errors.js";
+import type { DemandService } from "./demand.js";
 import { embedQuery } from "./embed-query.js";
 
 export interface TalksService {
-  search(query: TalkSearchQuery): Promise<TalkSearchResponse>;
+  search(userId: string, query: TalkSearchQuery): Promise<TalkSearchResponse>;
   suggest(query: TalkSuggestQuery): Promise<TalkSuggestResponse>;
   get(id: string): Promise<TalkResult>;
 }
@@ -22,11 +24,16 @@ export function createTalksService(deps: {
   talks: TalksRepository;
   ai: Pick<AiClient, "embed">;
   logger: Logger;
+  demand: Pick<DemandService, "recordSearchHits">;
+  metrics?: Pick<ProductMetrics, "recordAiError">;
 }): TalksService {
+  /** Only the top results count as "interest" in a talk. */
+  const DEMAND_TOP_N = 5;
+
   return {
-    async search(query) {
+    async search(userId, query) {
       return withSpan("confy.talks.search", { "confy.has_query": Boolean(query.q) }, async () => {
-        const vector = await embedQuery(deps.ai, deps.logger, query.q);
+        const vector = await embedQuery(deps.ai, deps.logger, query.q, deps.metrics);
         const results = await deps.talks.search({
           text: query.q,
           vector,
@@ -36,6 +43,8 @@ export function createTalksService(deps: {
           excludeVendorPitch: query.excludeVendorPitch,
           limit: query.limit,
         });
+        // Browsing without a query isn't a demand signal; searching is.
+        if (query.q) deps.demand.recordSearchHits(userId, results.slice(0, DEMAND_TOP_N));
         return { results };
       });
     },

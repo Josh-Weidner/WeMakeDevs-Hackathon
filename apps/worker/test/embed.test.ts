@@ -36,6 +36,14 @@ describe("embed handlers", () => {
     await expect(handlers["embed-speaker"]!(job({}))).rejects.toThrow();
   });
 
+  it("counts embedding provider failures and still fails the job", async () => {
+    const recordAiError = vi.fn();
+    const store = { get: vi.fn().mockResolvedValue(speaker), setEmbedding: vi.fn() } satisfies EmbeddingStore;
+    const handlers = createEmbedHandlers({ store, ai: { embed: vi.fn().mockRejectedValue(new Error("rate limited")) }, metrics: { recordAiError } });
+    await expect(handlers["embed-speaker"]!(job({ id: "spk-01" }))).rejects.toThrow("rate limited");
+    expect(recordAiError).toHaveBeenCalledWith("embed_document");
+  });
+
   it("fails when the embedding service returns nothing", async () => {
     const { store, handlers } = setup(speaker, vi.fn().mockResolvedValue([]));
     await expect(handlers["embed-speaker"]!(job({ id: "spk-01" }))).rejects.toThrow("no vector");
