@@ -1,21 +1,44 @@
-import { createAiClient, createEmbeddingStore, createEsClient, createJobsRepository, createLogger, isEsReachable } from "@confy/shared";
+import {
+  createAiClient,
+  createEmbeddingStore,
+  createEsClient,
+  createJobsRepository,
+  createLogger,
+  createProductMetrics,
+  isEsReachable,
+} from "@confy/shared";
 import { loadConfig } from "./config.js";
 import { createHandlers } from "./handlers/index.js";
 import { createHealthServer } from "./health-server.js";
 import { createJobLoop } from "./loop.js";
+
+const BACKLOG_REFRESH_MS = 10_000;
 
 // Composition root for the worker.
 const config = loadConfig();
 const logger = createLogger("confy-worker", config.LOG_LEVEL);
 const es = createEsClient({ url: config.ELASTICSEARCH_URL, apiKey: config.ELASTICSEARCH_API_KEY });
 
+const metrics = createProductMetrics("confy-worker");
+const jobs = createJobsRepository(es);
+
+// The backlog gauge reads a cached value (metric callbacks must not do I/O); a timer keeps it fresh.
+let backlog: number | undefined;
+metrics.observeBacklog(() => backlog);
+const refreshBacklog = () => jobs.backlog().then((n) => (backlog = n), (err: unknown) => logger.warn({ err }, "backlog refresh failed"));
+void refreshBacklog();
+const backlogTimer = setInterval(() => void refreshBacklog(), BACKLOG_REFRESH_MS);
+backlogTimer.unref();
+
 const handlers = createHandlers({
   store: createEmbeddingStore(es),
   ai: createAiClient({ apiKey: config.OPENAI_API_KEY }),
+  metrics,
 });
 
 const loop = createJobLoop({
-  source: createJobsRepository(es),
+  source: jobs,
+  onJobFailed: (job) => metrics.recordJobFailed(job.type),
   handlers,
   logger,
   minDelayMs: config.POLL_MIN_MS,
@@ -34,6 +57,7 @@ process.once("SIGINT", () => shutdown("SIGINT"));
 
 logger.info("job loop started");
 await loop.run();
+clearInterval(backlogTimer);
 health.close();
 await es.close();
 process.exit(0);

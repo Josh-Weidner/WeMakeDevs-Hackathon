@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate": "tsx src/cli.ts",
+    "demand": "tsx --env-file-if-exists=../.env.local --env-file-if-exists=../.env src/demand-cli.ts",
     "load": "tsx --env-file-if-exists=../.env.local --env-file-if-exists=../.env src/load-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

@@ -31,6 +31,11 @@ spec:
           env:
             - name: API_BASE_URL
               valueFrom: { configMapKeyRef: { name: confy-config, key: API_BASE_URL } }
+            # Browser RUM (optional): public ingest-only Dash0 token; RUM is skipped when absent.
+            - name: DASH0_RUM_ENDPOINT
+              valueFrom: { secretKeyRef: { name: confy-secrets, key: DASH0_RUM_ENDPOINT, optional: true } }
+            - name: DASH0_RUM_TOKEN
+              valueFrom: { secretKeyRef: { name: confy-secrets, key: DASH0_RUM_TOKEN, optional: true } }
           resources:
             requests: { cpu: 100m, memory: 128Mi }
             limits: { cpu: 500m, memory: 384Mi }

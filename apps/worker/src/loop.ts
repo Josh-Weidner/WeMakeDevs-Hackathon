@@ -1,4 +1,4 @@
-import { withSpan, type Logger } from "@confy/shared";
+import { linksFromTraceparent, withSpan, type Logger } from "@confy/shared";
 import type { Job, JobHandler, JobSource } from "./jobs.js";
 
 export interface JobLoopOptions {
@@ -8,6 +8,8 @@ export interface JobLoopOptions {
   minDelayMs: number;
   maxDelayMs: number;
   sleep?: (ms: number) => Promise<void>;
+  /** Called whenever a job attempt fails (feeds the `confy.jobs.failed` metric). */
+  onJobFailed?: (job: Job) => void;
 }
 
 export interface JobLoop {
@@ -25,8 +27,11 @@ export function createJobLoop(options: JobLoopOptions): JobLoop {
 
   async function processJob(job: Job): Promise<void> {
     const handler = options.handlers[job.type];
+    // Link (not parent) back to the request that enqueued the job: the work happens later, in another process.
+    const links = linksFromTraceparent(job.traceparent);
     await withSpan("confy.jobs.process", { "confy.job_type": job.type, "confy.job_attempts": job.attempts }, async () => {
       if (!handler) {
+        options.onJobFailed?.(job);
         await options.source.fail(job, `no handler for job type "${job.type}"`);
         options.logger.warn({ jobId: job.id, jobType: job.type }, "no handler for job type");
         return;
@@ -37,10 +42,11 @@ export function createJobLoop(options: JobLoopOptions): JobLoop {
       } catch (err) {
         // Store only the message: never payload contents (may contain user text).
         const message = err instanceof Error ? err.message : String(err);
+        options.onJobFailed?.(job);
         await options.source.fail(job, message);
         options.logger.error({ jobId: job.id, jobType: job.type, err }, "job failed");
       }
-    });
+    }, { links });
   }
 
   return {

@@ -1,22 +1,7 @@
-import { createLogger } from "@confy/shared";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import type { Container } from "../src/container.js";
 import { buildServer } from "../src/server.js";
-import { createHealthService } from "../src/services/health.js";
-
-function fakeContainer(esUp: boolean): Container {
-  return {
-    logger: createLogger("test", "silent"),
-    services: {
-      health: createHealthService({
-        service: "confy-api",
-        checks: { elasticsearch: async () => esUp },
-      }),
-    },
-    close: async () => undefined,
-  };
-}
+import { fakeContainer } from "./helpers.js";
 
 let app: FastifyInstance | undefined;
 afterEach(async () => {

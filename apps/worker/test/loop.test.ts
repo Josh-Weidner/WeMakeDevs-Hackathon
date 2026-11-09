@@ -90,3 +90,28 @@ describe("job loop", () => {
     expect(claimNext).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("job loop: failure metric and trace links", () => {
+  it("reports every failed attempt, including unknown job types", async () => {
+    const { source } = queueSource([job("1", "boom"), job("2", "mystery")]);
+    const onJobFailed = vi.fn();
+    const loop = createJobLoop({
+      source,
+      handlers: { boom: async () => { throw new Error("x"); } },
+      logger,
+      minDelayMs: 1,
+      maxDelayMs: 1,
+      sleep: async () => loop.stop(),
+      onJobFailed,
+    });
+    await loop.run();
+    expect(onJobFailed.mock.calls.map(([j]) => j.type)).toEqual(["boom", "mystery"]);
+  });
+
+  it("processes jobs that carry a traceparent", async () => {
+    const { source, completed } = queueSource([{ ...job("1", "ok"), traceparent: "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01" }]);
+    const loop = createJobLoop({ source, handlers: { ok: async () => undefined }, logger, minDelayMs: 1, maxDelayMs: 1, sleep: async () => loop.stop() });
+    await loop.run();
+    expect(completed).toEqual(["1"]);
+  });
+});

@@ -15,7 +15,7 @@ BUILDX ?= $(shell if docker buildx version >/dev/null 2>&1; then echo "docker bu
   elif [ -x $(ORB_XBIN)/docker-buildx ]; then echo $(ORB_XBIN)/docker-buildx; \
   else echo "docker buildx"; fi)
 # Only these .env keys go into the k8s Secret (everything else is ConfigMap).
-SECRET_KEYS := ELASTICSEARCH_URL|ELASTICSEARCH_API_KEY|OPENAI_API_KEY|OTEL_EXPORTER_OTLP_ENDPOINT|OTEL_EXPORTER_OTLP_HEADERS
+SECRET_KEYS := ELASTICSEARCH_URL|ELASTICSEARCH_API_KEY|OPENAI_API_KEY|OTEL_EXPORTER_OTLP_ENDPOINT|OTEL_EXPORTER_OTLP_HEADERS|DASH0_RUM_ENDPOINT|DASH0_RUM_TOKEN
 
 render = kubectl kustomize $(1) | sed "s/IMAGE_TAG/$(TAG)/g"
 

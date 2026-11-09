@@ -1,5 +1,6 @@
 import type { EsClient } from "../client.js";
 import { INDEX } from "../indices.js";
+import { currentTraceparent } from "../../telemetry/tracing.js";
 
 /** A claimed unit of work from the ES `jobs` index. */
 export interface Job {
@@ -33,6 +34,8 @@ export interface NewJob {
 
 export interface JobsRepository extends JobSource {
   enqueue(jobs: NewJob[]): Promise<number>;
+  /** Jobs waiting or in progress: feeds the `confy.jobs.backlog` metric. */
+  backlog(): Promise<number>;
 }
 
 export interface JobsRepositoryOptions {
@@ -91,6 +94,8 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
     async enqueue(jobs) {
       if (jobs.length === 0) return 0;
       const timestamp = now().toISOString();
+      // Jobs enqueued from a request carry its trace context so the worker span can link back.
+      const traceparent = currentTraceparent();
       const operations = jobs.flatMap((j) => [
         { index: { _index: INDEX.jobs, _id: j.id } },
         {
@@ -98,7 +103,7 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
           payload: j.payload,
           status: "pending",
           attempts: 0,
-          ...(j.traceparent ? { traceparent: j.traceparent } : {}),
+          ...((j.traceparent ?? traceparent) ? { traceparent: j.traceparent ?? traceparent } : {}),
           "@timestamp": timestamp,
         } satisfies JobDoc,
       ]);
@@ -108,6 +113,11 @@ export function createJobsRepository(es: EsClient, options: JobsRepositoryOption
         throw new Error(`Failed to enqueue jobs: ${first?.type}: ${first?.reason}`);
       }
       return jobs.length;
+    },
+
+    async backlog() {
+      const res = await es.count({ index: INDEX.jobs, query: { terms: { status: ["pending", "processing"] } } });
+      return res.count;
     },
 
     async claimNext() {

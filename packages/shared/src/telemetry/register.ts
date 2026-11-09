@@ -16,6 +16,9 @@ import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace";
 
+// Sensible defaults so local runs are labelled too; k8s overrides via OTEL_RESOURCE_ATTRIBUTES.
+process.env.OTEL_RESOURCE_ATTRIBUTES ??= "service.namespace=confy,deployment.environment=local";
+
 // ESM support: hook module loading so ESM imports (fastify, pino, ...) get instrumented.
 register("@opentelemetry/instrumentation/hook.mjs", import.meta.url);
 
@@ -32,6 +35,9 @@ const sdk = new NodeSDK({
     getNodeAutoInstrumentations({
       // fs spans are noise for us
       "@opentelemetry/instrumentation-fs": { enabled: false },
+      // dns/net/tcp connect spans bury the business spans in the Dash0 trace view
+      "@opentelemetry/instrumentation-dns": { enabled: false },
+      "@opentelemetry/instrumentation-net": { enabled: false },
     }),
   ],
 });
