@@ -8,6 +8,7 @@ import { demandRoutes } from "./routes/demand.js";
 import { meRoutes } from "./routes/me.js";
 import { peopleRoutes } from "./routes/people.js";
 import { roomsRoutes } from "./routes/rooms.js";
+import { scheduleRoutes } from "./routes/schedule.js";
 import { talksRoutes } from "./routes/talks.js";
 
 /** Builds the app without listening, so tests can use `app.inject()`. */
@@ -26,10 +27,11 @@ export async function buildServer(container: Container): Promise<FastifyInstance
       await v1.register(meRoutes);
       await v1.register(talksRoutes(container.services.talks, container.services.demand));
       await v1.register(demandRoutes(container.services.demand));
+      await v1.register(scheduleRoutes(container.services.schedule));
       await v1.register(roomsRoutes(container.services.rooms));
       await v1.register(peopleRoutes(container.services.people));
       await v1.register(contactsRoutes(container.services.contacts));
-      // Still to come: schedule, clips, intros
+      // Still to come: clips, intros
     },
     { prefix: "/v1" },
   );

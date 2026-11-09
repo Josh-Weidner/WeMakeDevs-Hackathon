@@ -11,6 +11,7 @@ export function fakeContainer(esUp = true, services: Partial<Container["services
       health: createHealthService({ service: "confy-api", checks: { elasticsearch: async () => esUp } }),
       demand: { forecast: unused("demand.forecast"), recordBookmark: unused("demand.recordBookmark"), recordSearchHits: () => undefined, refresh: async () => undefined, latest: () => [] },
       talks: { search: unused("talks.search"), suggest: unused("talks.suggest"), get: unused("talks.get") },
+      schedule: { build: unused("schedule.build") },
       rooms: { list: unused("rooms.list"), get: unused("rooms.get") },
       people: { match: unused("people.match") },
       contacts: { search: unused("contacts.search") },
