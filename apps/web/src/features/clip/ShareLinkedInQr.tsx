@@ -35,17 +35,11 @@ function writeStored(personaId: string, value: string | null) {
  * "Missed it? Share your LinkedIn" (SPEC §10b): a QR of the user's OWN profile for the other person to
  * scan. Nothing is recorded or uploaded, and Confy never contacts anyone on LinkedIn.
  */
-export function ShareLinkedInQr() {
+/** The URL the QR shows for the current persona (pasted on this device → demo default → opt-in profile). */
+export function useLinkedInShare() {
   const { persona } = usePersona();
   const [profileUrl, setProfileUrl] = useState<string | null>(null);
   const [stored, setStored] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [draftError, setDraftError] = useState<string | null>(null);
-  const [large, setLarge] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const inputId = useId();
-  const errorId = useId();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -60,22 +54,27 @@ export function ShareLinkedInQr() {
     return () => controller.abort();
   }, [persona.id]);
 
-  const share = resolveShareUrl({ stored, configured: configuredShareUrl(), profile: profileUrl });
-  const showForm = editing || !share;
+  return { persona, share: resolveShareUrl({ stored, configured: configuredShareUrl(), profile: profileUrl }), setStored };
+}
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    const url = parseLinkedInUrl(draft);
-    if (!url) {
-      setDraftError("Enter your LinkedIn profile URL, starting with https://www.linkedin.com/");
-      return;
-    }
-    writeStored(persona.id, url);
-    setStored(url);
-    setDraft("");
-    setDraftError(null);
-    setEditing(false);
-  }
+/** Phone layout: only the code, as large as the screen allows, for someone else to scan. */
+export function LinkedInQrOnly({ url }: { url: string }) {
+  return (
+    <figure className="mx-auto w-full max-w-xs">
+      <div role="img" aria-label={`QR code to connect on LinkedIn: ${url}`} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/10">
+        <QRCodeSVG value={url} size={512} level="M" marginSize={1} bgColor="#ffffff" fgColor="#000000" aria-hidden="true" className="h-auto w-full" />
+      </div>
+      <figcaption className="mt-3 text-center text-sm text-muted-foreground">Scan to connect on LinkedIn</figcaption>
+    </figure>
+  );
+}
+
+export function ShareLinkedInQr({ persona, share, setStored }: ReturnType<typeof useLinkedInShare>) {
+  const [editing, setEditing] = useState(false);
+  const [large, setLarge] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const showForm = editing || !share;
 
   function reset() {
     writeStored(persona.id, null);
@@ -142,38 +141,75 @@ export function ShareLinkedInQr() {
         )}
 
         {showForm && (
-          <form onSubmit={submit} noValidate className="grid max-w-md gap-2">
-            <Label htmlFor={inputId}>Your LinkedIn profile URL</Label>
-            <p className="text-sm text-muted-foreground">Kept on this device only.</p>
-            <Input
-              id={inputId}
-              type="url"
-              inputMode="url"
-              autoComplete="url"
-              placeholder="https://www.linkedin.com/in/your-name/"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              aria-invalid={draftError ? true : undefined}
-              aria-describedby={draftError ? errorId : undefined}
-            />
-            {draftError && (
-              <p id={errorId} className="text-sm text-destructive">
-                {draftError}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button type="submit" size="sm">
-                Show QR code
-              </Button>
-              {share && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
+          <LinkedInUrlForm
+            personaId={persona.id}
+            setStored={setStored}
+            onSaved={() => setEditing(false)}
+            onCancel={share ? () => setEditing(false) : undefined}
+          />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+type LinkedInUrlFormProps = {
+  personaId: string;
+  setStored: ReturnType<typeof useLinkedInShare>["setStored"];
+  onSaved?: () => void;
+  onCancel?: () => void;
+};
+
+export function LinkedInUrlForm({ personaId, setStored, onSaved, onCancel }: LinkedInUrlFormProps) {
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const inputId = useId();
+  const errorId = useId();
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const url = parseLinkedInUrl(draft);
+    if (!url) {
+      setDraftError("Enter your LinkedIn profile URL, starting with https://www.linkedin.com/");
+      return;
+    }
+    writeStored(personaId, url);
+    setStored(url);
+    setDraft("");
+    setDraftError(null);
+    onSaved?.();
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="grid max-w-md gap-2">
+      <Label htmlFor={inputId}>Your LinkedIn profile URL</Label>
+      <p className="text-sm text-muted-foreground">Kept on this device only.</p>
+      <Input
+        id={inputId}
+        type="url"
+        inputMode="url"
+        autoComplete="url"
+        placeholder="https://www.linkedin.com/in/your-name/"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        aria-invalid={draftError ? true : undefined}
+        aria-describedby={draftError ? errorId : undefined}
+      />
+      {draftError && (
+        <p id={errorId} className="text-sm text-destructive">
+          {draftError}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="submit" size="sm">
+          Show QR code
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
   );
 }
