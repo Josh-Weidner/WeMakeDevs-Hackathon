@@ -179,17 +179,23 @@ These are **merge-blocking rules**, also enforced by the Gitar a11y rule:
 
 ## 10. Commands
 
-> These will be created by the scaffold PR. Keep this section accurate as they're added.
+> Keep this section accurate. Add a command here in the same PR that creates it.
 
 ```
+corepack enable              # provides the pinned pnpm (packageManager field)
 pnpm install
-pnpm dev                 # web + api + worker locally against Serverless ES
-pnpm typecheck && pnpm lint && pnpm test
-pnpm es:setup            # create/update indices + aliases (idempotent)
-pnpm seed                # generate + bulk-load synthetic data
-make cluster             # create kind cluster + namespace
-make secrets             # create k8s Secrets from .env
-make deploy              # build images, kind load, kubectl apply -k deploy/k8s/base
-make break-worker / make fix-worker   # demo chaos toggle
-make load                # "keynote spike" load script
+pnpm dev                     # web :3000 + api :4000 + worker (health :4001), uses .env
+pnpm typecheck && pnpm lint && pnpm test && pnpm build   # same as CI
+make help                    # list all targets
+make up                      # kind cluster + secrets from .env + build/load images + deploy
+make status | make port-forward | make logs-<api|worker|web>
+make break-worker / make fix-worker   # demo chaos toggle (worker OOMKilled)
+make destroy                 # delete the kind cluster
 ```
+
+Planned (add when built): `pnpm es:setup` (indices + aliases), `pnpm seed` (synthetic data), `make load` (keynote spike load script).
+
+Gotchas:
+- `@confy/shared` must be built before the apps typecheck or run. The root `dev`, `typecheck`, and `test` scripts do this for you.
+- Local dev without Dash0: set `OTEL_SDK_DISABLED=true` in `.env`.
+- TypeScript is pinned to ~6.0 and ESLint to ^9 until typescript-eslint and jsx-a11y support newer versions.
