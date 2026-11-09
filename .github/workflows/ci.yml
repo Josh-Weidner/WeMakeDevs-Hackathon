@@ -19,18 +19,21 @@ jobs:
     timeout-minutes: 15
     env:
       OTEL_SDK_DISABLED: "true"
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # full history for SonarQube blame/new-code detection
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Typecheck
         run: pnpm typecheck
@@ -38,11 +41,16 @@ jobs:
       - name: Lint (incl. jsx-a11y + layering rules)
         run: pnpm lint
 
-      - name: Test
-        run: pnpm test
+      - name: Test (with coverage)
+        run: pnpm test:coverage
 
       - name: Build
         run: pnpm build
+
+      - name: SonarQube Cloud scan
+        # Secrets are unavailable to fork PRs; skip rather than fail.
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
 
   docker:
     name: docker build (${{ matrix.app }})
@@ -53,6 +61,6 @@ jobs:
       matrix:
         app: [api, worker, web]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build image
         run: docker build -f apps/${{ matrix.app }}/Dockerfile -t confy-${{ matrix.app }}:ci .
