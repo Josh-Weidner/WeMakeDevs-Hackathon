@@ -7,6 +7,7 @@ import { AskPanel } from "@/components/AskPanel";
 import { EmptyNotice, ErrorNotice, LoadingList, ResultsHeading } from "@/components/ResultStates";
 import { Button } from "@/components/ui/button";
 import { useAsyncResult } from "@/hooks/use-async-result";
+import { useAutoSubmit } from "@/hooks/use-auto-submit";
 import { api } from "@/lib/api/client";
 import { plural } from "@/lib/format";
 import { ContactCard } from "./ContactCard";
@@ -35,9 +36,9 @@ function ContactList({ contacts, userId }: { contacts: ContactResult[]; userId: 
  * Recall people you met by what you remember, plus your most recent contacts. Contacts are private per
  * persona: the page remounts (see the `key` in ContactsView) when the persona changes, so nothing carries over.
  */
-export function ContactsFinder({ userId }: { userId: string }) {
+export function ContactsFinder({ userId, initialQuery }: { userId: string; initialQuery?: string }) {
   const [recent, setRecent] = useState<Recent>({ status: "loading" });
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const { state, run, fail, reset, headingRef } = useAsyncResult<ContactResult[]>();
 
   useEffect(() => {
@@ -59,6 +60,8 @@ export function ContactsFinder({ userId }: { userId: string }) {
       "We could not reach the contacts service. Please try again.",
     );
   }
+
+  useAutoSubmit(initialQuery, find);
 
   const results = state.phase === "done" ? state.data : [];
   const status = state.phase === "loading" ? "Searching your contacts…" : state.phase === "done" ? `${plural(results.length, "contact", "contacts")} found.` : "";

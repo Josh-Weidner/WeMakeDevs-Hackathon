@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AskPanel } from "@/components/AskPanel";
 import { EmptyNotice, ErrorNotice, LoadingList, ResultsHeading } from "@/components/ResultStates";
 import { useAsyncResult } from "@/hooks/use-async-result";
+import { useAutoSubmit } from "@/hooks/use-auto-submit";
 import { api } from "@/lib/api/client";
 import { plural } from "@/lib/format";
 import { usePersona } from "@/lib/persona/PersonaProvider";
@@ -18,9 +19,9 @@ const EXAMPLES = [
 ];
 
 /** Describe who you'd like to meet; get opted-in attendees with a suggested opener for each. */
-export function PeopleMatcher() {
+export function PeopleMatcher({ initialQuery }: { initialQuery?: string }) {
   const { persona } = usePersona();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const { state, run, fail, headingRef } = useAsyncResult<PeopleMatchResponse>();
 
   function find() {
@@ -28,6 +29,8 @@ export function PeopleMatcher() {
     if (q.length === 0) return fail("Describe who you would like to meet, for example a role, a stack, or a topic.");
     void run(() => api.get(`/v1/people/match?q=${encodeURIComponent(q)}`, PeopleMatchResponse, { userId: persona.id }), "We could not reach the matching service. Please try again.");
   }
+
+  useAutoSubmit(initialQuery, find);
 
   const matches = state.phase === "done" ? state.data.matches : [];
   const status = state.phase === "loading" ? "Finding people…" : state.phase === "done" ? `${plural(matches.length, "person", "people")} found.` : "";

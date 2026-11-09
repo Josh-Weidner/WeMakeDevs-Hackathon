@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAsyncResult } from "@/hooks/use-async-result";
+import { useAutoSubmit } from "@/hooks/use-auto-submit";
 import { useSavedSchedule } from "@/hooks/use-saved-schedule";
 import { api } from "@/lib/api/client";
 import { plural } from "@/lib/format";
@@ -23,9 +24,9 @@ const EXAMPLES = [
 ];
 
 /** Describe your day in plain language, get a clash-free schedule. */
-export function ScheduleBuilder() {
+export function ScheduleBuilder({ initialQuery }: { initialQuery?: string }) {
   const { persona } = usePersona();
-  const [request, setRequest] = useState("");
+  const [request, setRequest] = useState(initialQuery ?? "");
   const [lowStimulation, setLowStimulation] = useState(false);
   const { state, run, fail, headingRef } = useAsyncResult<ScheduleResponse>();
   const { saved, save, clear } = useSavedSchedule(persona.id);
@@ -38,6 +39,8 @@ export function ScheduleBuilder() {
       return built;
     }, "We could not reach the schedule service. Please try again.");
   }
+
+  useAutoSubmit(initialQuery, build);
 
   // A fresh build wins; otherwise show what this persona saved earlier.
   const fresh = state.phase === "done" ? state.data : null;
