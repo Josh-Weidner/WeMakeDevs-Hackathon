@@ -25,7 +25,7 @@ export async function buildServer(container: Container): Promise<FastifyInstance
   await app.register(healthRoutes(container.services.health));
   await app.register(
     async (v1) => {
-      await v1.register(meRoutes);
+      await v1.register(meRoutes(container.services.me));
       await v1.register(talksRoutes(container.services.talks, container.services.demand));
       await v1.register(demandRoutes(container.services.demand));
       await v1.register(scheduleRoutes(container.services.schedule));

@@ -11,6 +11,7 @@ import { ApiRequestError, api } from "@/lib/api/client";
 import { usePersona } from "@/lib/persona/PersonaProvider";
 import { BUFFER_SECONDS, useClipRecorder } from "./useClipRecorder";
 import { ClipCard, formatDuration } from "./ClipCard";
+import { SHARE_QR_ID, ShareLinkedInQr } from "./ShareLinkedInQr";
 
 interface SavedClip {
   id: string;
@@ -137,14 +138,24 @@ export function ClipMode() {
             <Alert variant="destructive">
               <CircleAlert aria-hidden="true" />
               <AlertTitle>Microphone unavailable</AlertTitle>
-              <AlertDescription>{recorder.error}</AlertDescription>
+              <AlertDescription>
+                {recorder.error}
+                <a href={`#${SHARE_QR_ID}`} className="mt-1 block font-medium underline underline-offset-4">
+                  Missed it? Share your LinkedIn QR instead
+                </a>
+              </AlertDescription>
             </Alert>
           )}
           {error && (
             <Alert variant="destructive">
               <CircleAlert aria-hidden="true" />
               <AlertTitle>Clip not saved</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error}
+                <a href={`#${SHARE_QR_ID}`} className="mt-1 block font-medium underline underline-offset-4">
+                  Missed it? Share your LinkedIn QR instead
+                </a>
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -162,6 +173,8 @@ export function ClipMode() {
           />
         </CardFooter>
       </Card>
+
+      <ShareLinkedInQr />
 
       <p role="status" className="sr-only">
         {announcement}

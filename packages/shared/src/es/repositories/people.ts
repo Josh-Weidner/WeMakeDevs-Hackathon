@@ -13,7 +13,7 @@ export interface PeopleMatchParams {
 }
 
 /** What the opener generator may know about the requester: the same fields other attendees can see. */
-export type RequesterProfile = Pick<AttendeeDoc, "display_name" | "role" | "company_type" | "stack" | "interests">;
+export type RequesterProfile = Pick<AttendeeDoc, "display_name" | "role" | "company_type" | "stack" | "interests" | "linkedin_url">;
 
 export interface PeopleRepository {
   /** The requesting attendee's own profile, or null for an unknown persona. */
@@ -30,7 +30,15 @@ export function createPeopleRepository(es: EsClient): PeopleRepository {
       try {
         const res = await es.get<unknown>({ index: INDEX.attendees, id, _source_excludes: ["embedding"] });
         const a = AttendeeDoc.parse(res._source);
-        return { display_name: a.display_name, role: a.role, company_type: a.company_type, stack: a.stack, interests: a.interests };
+        return {
+          display_name: a.display_name,
+          role: a.role,
+          company_type: a.company_type,
+          stack: a.stack,
+          interests: a.interests,
+          // Only present when the attendee opted in to sharing it.
+          ...(a.linkedin_url ? { linkedin_url: a.linkedin_url } : {}),
+        };
       } catch (err) {
         if ((err as { statusCode?: number }).statusCode === 404) return null;
         throw err;
