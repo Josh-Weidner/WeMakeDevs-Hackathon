@@ -129,12 +129,12 @@ The two that are easy to forget, and the demo needs both: **the 11:00 Checks scr
 |---|---|---|---|
 | 1.1 | Start (11:00) | Claim the cluster as soon as the team is formed | ✅ `sweet-blossom` (Radar 1.20.2) |
 | 1.2 | Start | Connect the coding agent to Radar before writing code (`radar-cloud` MCP) | ✅ |
-| 1.3 | Start | Screenshot **Checks**: the "before" picture | ⚠️ Not taken at 11:00. Radar MCP audit captured 13:50, before the Checks fixes: `confy` 10 medium (3 Security, 7 Reliability), cluster 68. **Take the UI screenshot before the Checks PR is released** |
+| 1.3 | Start | Screenshot **Checks**: the "before" picture | ⚠️ Not taken at 11:00. Radar MCP audit captured 13:50, before the Checks fixes: `confy` 10 medium (3 Security, 7 Reliability), cluster 68. After (14:03): **3 medium, 0 Security** (podHARisk only). Take the "after" UI screenshot |
 | 2.1 | All day | Argo CD deploys every push. The agent pushes, syncs, and waits for each rollout through Radar (`wait_for`) | ✅ Argo CD tracks `main`; `make release` + Radar `wait_for` after each merge |
 | 2.2 | All day | When something breaks, look in Radar first | ✅ Habit: Radar `issues` / `diagnose` before kubectl |
 | 3 | Afternoon | Make it better (optional; pick any): add a database · add metrics · **fix something Checks flagged** · set up autoscaling · set up a canary deploy | ✅ Fix Checks findings (PDBs, topology spread, no SA token, worker replicas 2). Database = Elasticsearch, metrics = OTel → Dash0 (§7). Autoscaling skipped: the cluster has no metrics-server. Canary skipped |
 | 4.1 | Any time | Run **Investigate** on anything we can't explain, then let the agent ship the fix | ✅ Rehearsal 13:15: worker OOMKilled, investigation `chat_YZtzpMMTIX1d76Rd`, fix shipped by a merge to `main` |
-| 4.2 | Any time | No real breakage? Run Investigate on the app after a release anyway. An all-clear with evidence counts | ⬜ After the Checks PR is released |
+| 4.2 | Any time | No real breakage? Run Investigate on the app after a release anyway. An all-clear with evidence counts | ✅ 14:04: Investigate on `confy/web` after release `3bf65a2`: all-clear (confidence 0.92) |
 | 5 | By 5:30 | Tell the day's story **from inside Radar**: the deploy timeline, the investigation(s), Checks before and after (the 11:00 screenshot) | ⬜ Share investigations with the org; stage the tabs |
 | 6 | From Nov 10 | Connect our own cluster to Radar Cloud (participants get 3 months of Enterprise free); star the repo | ⬜ |
 
