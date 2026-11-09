@@ -1,0 +1,25 @@
+name: Gitar auto-apply
+
+# Gitar's auto-apply is off by default and enabled per PR by the `gitar-managed` label.
+# Label every PR so Gitar commits fixes for its review findings and for CI failures caused by the PR.
+# pull_request_target so it also works for PRs from forks; it never checks out or runs PR code.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Add gitar-managed label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        # REST, not `gh pr edit`: that call currently fails on the Projects (classic) deprecation.
+        run: gh api "repos/$REPO/issues/$PR/labels" -f "labels[]=gitar-managed" --silent
