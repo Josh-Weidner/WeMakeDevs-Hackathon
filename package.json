@@ -1,0 +1,38 @@
+{
+  "name": "confy",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @confy/shared build",
+    "dev": "pnpm build:shared && pnpm --parallel --filter \"./apps/*\" dev",
+    "typecheck": "pnpm build:shared && pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm build:shared && pnpm -r test",
+    "test:coverage": "pnpm build:shared && pnpm -r run test --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@opentelemetry/core>@opentelemetry/api": "1.10"
+      }
+    },
+    "//": "@elastic/transport pins @opentelemetry/core 2.x, whose peer range caps api <1.10; sdk-node needs api 1.10. The api is backward compatible within 1.x."
+  }
+}

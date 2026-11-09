@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/.next
+.git
+.claude
+.env
+.env.*
+!.env.example
+deploy
+seed/out

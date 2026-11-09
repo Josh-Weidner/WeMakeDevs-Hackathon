@@ -1,0 +1,13 @@
+# Non-secret config. Secrets (ES/OpenAI keys, Dash0 endpoint + token) come from the
+# `confy-secrets` Secret created by `make secrets` from your local .env.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: confy-config
+  labels:
+    app.kubernetes.io/part-of: confy
+data:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  API_BASE_URL: http://api:4000
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
