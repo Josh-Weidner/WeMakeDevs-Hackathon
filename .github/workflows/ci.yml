@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 15
     env:
       OTEL_SDK_DISABLED: "true"
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -46,11 +45,6 @@ jobs:
 
       - name: Build
         run: pnpm build
-
-      - name: SonarQube Cloud scan
-        # Secrets are unavailable to fork PRs; skip rather than fail.
-        if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
 
   docker:
     name: docker build (${{ matrix.app }})
