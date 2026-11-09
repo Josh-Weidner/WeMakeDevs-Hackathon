@@ -1,6 +1,7 @@
 import { CalendarCheck2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { LikelyFull } from "@/features/rooms/LikelyFull";
+import { NextUp } from "@/features/schedule/NextUp";
 import { PersonaSwitcher } from "@/features/persona/PersonaSwitcher";
 import { SystemStatus } from "@/features/system-status/SystemStatus";
 import { MobileNav } from "./MobileNav";
@@ -53,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <ShellBody panels={{ "next-up": null, demand: <LikelyFull /> }}>{children}</ShellBody>
+        <ShellBody panels={{ "next-up": <NextUp />, demand: <LikelyFull /> }}>{children}</ShellBody>
       </div>
     </div>
   );

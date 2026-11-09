@@ -6,9 +6,11 @@ import { useState } from "react";
 import { AskPanel } from "@/components/AskPanel";
 import { ErrorNotice, LoadingList, ResultsHeading } from "@/components/ResultStates";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAsyncResult } from "@/hooks/use-async-result";
+import { useSavedSchedule } from "@/hooks/use-saved-schedule";
 import { api } from "@/lib/api/client";
 import { plural } from "@/lib/format";
 import { usePersona } from "@/lib/persona/PersonaProvider";
@@ -26,13 +28,21 @@ export function ScheduleBuilder() {
   const [request, setRequest] = useState("");
   const [lowStimulation, setLowStimulation] = useState(false);
   const { state, run, fail, headingRef } = useAsyncResult<ScheduleResponse>();
+  const { saved, save, clear } = useSavedSchedule(persona.id);
 
   function build() {
     if (request.trim().length === 0) return fail("Tell us what you would like to see, for example a topic or a level.");
-    void run(() => api.post("/v1/schedule/build", ScheduleResponse, { request, lowStimulation }, { userId: persona.id }), "We could not reach the schedule service. Please try again.");
+    void run(async () => {
+      const built = await api.post("/v1/schedule/build", ScheduleResponse, { request, lowStimulation }, { userId: persona.id });
+      save(request.trim(), built); // keep "my day" across pages and visits
+      return built;
+    }, "We could not reach the schedule service. Please try again.");
   }
 
-  const schedule = state.phase === "done" ? state.data : null;
+  // A fresh build wins; otherwise show what this persona saved earlier.
+  const fresh = state.phase === "done" ? state.data : null;
+  const schedule = fresh ?? saved?.schedule ?? null;
+  const showingSaved = !fresh && saved !== null;
   const status = state.phase === "loading" ? "Building your schedule…" : schedule ? `Schedule ready: ${plural(schedule.items.length, "talk", "talks")}.` : "";
 
   return (
@@ -81,8 +91,19 @@ export function ScheduleBuilder() {
         <section aria-labelledby="results-heading" className="grid gap-4">
           <div className="grid gap-2">
             <ResultsHeading id="results-heading" ref={headingRef}>
-              Your schedule{schedule.low_stimulation ? " (low-stimulation)" : ""}
+              {showingSaved ? "Your saved schedule" : "Your schedule"}
+              {schedule.low_stimulation ? " (low-stimulation)" : ""}
             </ResultsHeading>
+            {showingSaved && saved && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <span>
+                  From “{saved.request}”, saved {new Date(saved.saved_at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={clear}>
+                  Clear saved schedule
+                </Button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               <span>Understood as:</span>
               <Badge variant="secondary">{schedule.parsed.query ? `topic “${schedule.parsed.query}”` : "any topic"}</Badge>
