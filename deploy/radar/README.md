@@ -47,7 +47,18 @@ Before (Radar MCP `get_cluster_audit`, 2026-11-09 13:50 MT, before the Checks fi
 | missingTopologySpread | api, web | `topologySpreadConstraints` on hostname, `ScheduleAnyway` |
 | podHARisk | api, web | **Expected to remain**: the cluster has one node (`orbstack`), so the replicas can't be spread |
 
-After: _run `get_cluster_audit namespace=confy` (and screenshot Checks) once the Checks PR is released._
+After (Radar MCP `get_cluster_audit`, 14:03 MT, after `make release` of PR #8 at `3bf65a2`): **`confy` 3 medium,
+0 Security.** The only findings left are `podHARisk` for api, web, and worker, which can't clear on a one-node cluster
+(the worker joined the list when it went to 2 replicas).
+
+| | Before (13:50) | After (14:03) |
+|---|---|---|
+| Security | 3 | **0** |
+| Reliability | 7 | **3** (podHARisk only) |
+| Total | 10 | **3** |
+
+Radar's Checks page defaults to **Namespace: Any**, which also counts Argo CD and the Radar agent
+(pods we don't own). Filter **Namespace** to `confy` to see the numbers above.
 
 ## Evidence log
 
@@ -59,3 +70,6 @@ After: _run `get_cluster_audit namespace=confy` (and screenshot Checks) once the
 | 13:15–13:17 | Radar AI Investigation `chat_YZtzpMMTIX1d76Rd`: suspected memory cut; recommended rolling back and restoring the memory. Verified with kubectl: `OOMKilled`/137, and both pods run the same image, so the only difference is the memory limit | [investigation](https://app.radarhq.io/c/e3rjKKveIz0/investigations/chat_YZtzpMMTIX1d76Rd?org=org_3Ergp3D_7Q1a) (share with the org) |
 | 13:15 | Fix shipped: PR #6 merged to `main` → Argo CD sync → worker healthy | Argo CD history, Radar timeline |
 | 13:50 | Checks "before" captured via MCP (table above) | this file |
+| 14:02 | Release: PR #8 merged, `make release` → Argo CD Synced/Healthy at `3bf65a2`. Radar `wait_for`: api, web, worker 2/2 rolled out | Radar deploy timeline |
+| 14:03 | Checks "after" captured via MCP: 10 → 3 (table above) | this file |
+| 14:03–14:04 | Post-release **Investigate** on `Deployment confy/web` (`chat_IEwzlSlpxNFTpG7p`): **all-clear**, certainty established, confidence 0.92. Two readiness-probe warnings were normal noise during the image rollout. It didn't look into the earlier `web-78fbd5d4bf` pod (revision from 13:48 MT / 20:48 UTC) that Radar had flagged as crash-looping; that revision was replaced by the release | [investigation](https://app.radarhq.io/c/e3rjKKveIz0/investigations/chat_IEwzlSlpxNFTpG7p?org=org_3Ergp3D_7Q1a) (share with the org) |
