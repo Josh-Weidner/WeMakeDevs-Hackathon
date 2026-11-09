@@ -10,7 +10,7 @@ export function RoomCard({ room }: { room: RoomResult }) {
   return (
     <Card className="h-full">
       <CardHeader className="gap-3">
-        <h3 className="text-lg leading-tight font-semibold">{room.name}</h3>
+        <h2 className="text-lg leading-tight font-semibold">{room.name}</h2>
         <ul className="flex flex-wrap gap-1.5" aria-label={`About ${room.name}`}>
           <li>
             <Badge variant="outline">

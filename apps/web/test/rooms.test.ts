@@ -19,8 +19,8 @@ describe("crowdLevel", () => {
     expect(crowdLevel({ ratio: 0.69, likely_full: false })).toBe("quiet");
   });
 
-  it("treats a talk with no demand data as quiet", () => {
-    expect(crowdLevel(undefined)).toBe("quiet");
+  it("marks a talk with no demand data as unknown", () => {
+    expect(crowdLevel(undefined)).toBe("unknown");
   });
 });
 
@@ -33,12 +33,12 @@ describe("sessionsByDay", () => {
       demand,
     );
     expect(out.map((d) => d.label)).toEqual(["Tuesday, November 10", "Wednesday, November 11"]);
-    expect(out[0]?.sessions.map((s) => [s.talk.id, s.crowd])).toEqual([["a", "full"], ["b", "busy"], ["quiet", "quiet"]]);
-    expect(out[1]?.sessions[0]?.crowd).toBe("quiet");
+    expect(out[0]?.sessions.map((s) => [s.talk.id, s.crowd])).toEqual([["a", "full"], ["b", "busy"], ["quiet", "unknown"]]);
+    expect(out[1]?.sessions[0]?.crowd).toBe("unknown");
   });
 
   it("still works when the forecast is unavailable, and for no talks", () => {
-    expect(sessionsByDay([talk("a", "2026-11-10T13:30:00-07:00")], null)[0]?.sessions[0]?.crowd).toBe("quiet");
+    expect(sessionsByDay([talk("a", "2026-11-10T13:30:00-07:00")], null)[0]?.sessions[0]?.crowd).toBe("unknown");
     expect(sessionsByDay([], demand)).toEqual([]);
   });
 });

@@ -4,17 +4,17 @@ import { dayKey, dayLabel } from "../schedule/format";
 /** Forecast demand ÷ capacity at or above this is "Getting busy" (1.0 and over is "likely full"). */
 export const BUSY_RATIO = 0.7;
 
-export type CrowdLevel = "quiet" | "busy" | "full";
+export type CrowdLevel = "unknown" | "quiet" | "busy" | "full";
 
-export const CROWD_LABEL: Record<CrowdLevel, string> = {
+export const CROWD_LABEL: Record<Exclude<CrowdLevel, "unknown">, string> = {
   quiet: "Quiet",
   busy: "Getting busy",
   full: "Likely full: arrive early or watch the stream",
 };
 
-/** Same thresholds the api uses for its `likely_full` flag, plus a middle "busy" band. Unknown demand is quiet. */
+/** Same thresholds the api uses for its `likely_full` flag, plus a middle "busy" band. */
 export function crowdLevel(demand: { ratio: number; likely_full: boolean } | undefined): CrowdLevel {
-  if (!demand) return "quiet";
+  if (!demand) return "unknown";
   if (demand.likely_full) return "full";
   return demand.ratio >= BUSY_RATIO ? "busy" : "quiet";
 }
