@@ -126,8 +126,9 @@ describe("rooms, people and contacts services", () => {
   });
 
   it("scopes contacts search to the requesting persona", async () => {
-    const contacts = { search: vi.fn().mockResolvedValue([]) };
-    await createContactsService({ contacts, ai: { embed: async () => [vector] }, logger }).search("demo-sam", { q: "bank", limit: 5 });
+    const contacts = { search: vi.fn().mockResolvedValue([]), list: vi.fn(), get: vi.fn() };
+    const ai = { embed: async () => [vector], chatJson: vi.fn() as unknown as AiClient["chatJson"] };
+    await createContactsService({ contacts, people: { getProfile: vi.fn() }, ai, logger }).search("demo-sam", { q: "bank", limit: 5 });
     expect(contacts.search).toHaveBeenCalledWith({ ownerId: "demo-sam", text: "bank", vector, limit: 5 });
   });
 });
@@ -179,7 +180,7 @@ describe("routes", () => {
 
   it("GET /v1/contacts/search is scoped to the persona and defaults to demo-alex", async () => {
     const search = vi.fn().mockResolvedValue({ results: [] });
-    app = await buildServer(fakeContainer(true, { contacts: { search } }));
+    app = await buildServer(fakeContainer(true, { contacts: { search, list: vi.fn(), followUp: vi.fn() } }));
     await app.inject({ method: "GET", url: "/v1/contacts/search?q=bank" });
     expect(search).toHaveBeenCalledWith("demo-alex", { q: "bank", limit: 5 });
     await app.inject({ method: "GET", url: "/v1/contacts/search?q=bank", headers: { "x-user-id": "demo-priya" } });
