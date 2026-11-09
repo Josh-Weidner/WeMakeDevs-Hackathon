@@ -78,3 +78,8 @@ export const api = {
   post: <S extends z.ZodType>(path: `/${string}`, schema: S, body: unknown, options?: RequestOptions) =>
     request("POST", path, schema, body, options),
 };
+
+/** A message safe to show a user: the api's own message when it sent one, otherwise the given fallback. */
+export function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof ApiRequestError ? err.message : fallback;
+}

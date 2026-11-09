@@ -1,16 +1,14 @@
 "use client";
 
 import { ContactSearchResponse, type ContactResult } from "@confy/shared/contracts";
-import { CircleAlert, LoaderCircle, Search, UsersRound } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ExamplePrompts } from "@/components/ExamplePrompts";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AskPanel } from "@/components/AskPanel";
+import { EmptyNotice, ErrorNotice, LoadingList, ResultsHeading } from "@/components/ResultStates";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { ApiRequestError, api } from "@/lib/api/client";
+import { useAsyncResult } from "@/hooks/use-async-result";
+import { api } from "@/lib/api/client";
+import { plural } from "@/lib/format";
 import { ContactCard } from "./ContactCard";
 
 const EXAMPLES = [
@@ -20,21 +18,27 @@ const EXAMPLES = [
 ];
 
 type Recent = { status: "loading" } | { status: "error" } | { status: "ok"; results: ContactResult[] };
-type Search =
-  | { phase: "idle" }
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | { phase: "done"; query: string; results: ContactResult[] };
+
+function ContactList({ contacts, userId }: { contacts: ContactResult[]; userId: string }) {
+  return (
+    <ul className="grid gap-4">
+      {contacts.map((contact) => (
+        <li key={contact.id}>
+          <ContactCard contact={contact} userId={userId} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
  * Recall people you met by what you remember, plus your most recent contacts. Contacts are private per
- * persona: the page remounts (see the `key` in the route) when the persona changes, so nothing carries over.
+ * persona: the page remounts (see the `key` in ContactsView) when the persona changes, so nothing carries over.
  */
 export function ContactsFinder({ userId }: { userId: string }) {
   const [recent, setRecent] = useState<Recent>({ status: "loading" });
   const [query, setQuery] = useState("");
-  const [search, setSearch] = useState<Search>({ phase: "idle" });
-  const resultsHeading = useRef<HTMLHeadingElement>(null);
+  const { state, run, fail, reset, headingRef } = useAsyncResult<ContactResult[]>();
 
   useEffect(() => {
     let cancelled = false;
@@ -47,148 +51,73 @@ export function ContactsFinder({ userId }: { userId: string }) {
     };
   }, [userId]);
 
-  async function find(event: FormEvent) {
-    event.preventDefault();
+  function find() {
     const q = query.trim();
-    if (q.length === 0) {
-      setSearch({ phase: "error", message: "Describe who you are trying to remember, for example where you met them or what they do." });
-      return;
-    }
-    setSearch({ phase: "loading" });
-    try {
-      const res = await api.get(`/v1/contacts/search?q=${encodeURIComponent(q)}`, ContactSearchResponse, { userId });
-      setSearch({ phase: "done", query: q, results: res.results });
-      requestAnimationFrame(() => resultsHeading.current?.focus());
-    } catch (err) {
-      setSearch({ phase: "error", message: err instanceof ApiRequestError ? err.message : "We could not reach the contacts service. Please try again." });
-    }
+    if (q.length === 0) return fail("Describe who you are trying to remember, for example where you met them or what they do.");
+    void run(
+      async () => (await api.get(`/v1/contacts/search?q=${encodeURIComponent(q)}`, ContactSearchResponse, { userId })).results,
+      "We could not reach the contacts service. Please try again.",
+    );
   }
 
-  const searching = search.phase === "loading";
-  const status = searching
-    ? "Searching your contacts…"
-    : search.phase === "done"
-      ? `${search.results.length} ${search.results.length === 1 ? "contact" : "contacts"} found.`
-      : "";
+  const results = state.phase === "done" ? state.data : [];
+  const status = state.phase === "loading" ? "Searching your contacts…" : state.phase === "done" ? `${plural(results.length, "contact", "contacts")} found.` : "";
 
   return (
     <div className="grid gap-8">
-      <Card>
-        <form onSubmit={find} noValidate className="grid gap-6">
-          <CardHeader>
-            <CardTitle>
-              <h2>Who are you trying to remember?</h2>
-            </CardTitle>
-            <CardDescription>Search only your own contacts by anything you recall: a talk, a company, a topic.</CardDescription>
-          </CardHeader>
+      <AskPanel
+        id="contacts"
+        title="Who are you trying to remember?"
+        description="Search only your own contacts by anything you recall: a talk, a company, a topic."
+        label="What do you remember?"
+        hint="Roughly is fine: we match on meaning as well as words."
+        placeholder="e.g. the person I met at the eBPF talk who worked at a bank"
+        maxLength={200}
+        value={query}
+        onChange={setQuery}
+        onSubmit={find}
+        examples={EXAMPLES}
+        submitLabel="Find contact"
+        busyLabel="Searching…"
+        icon={Search}
+        busy={state.phase === "loading"}
+        invalid={state.phase === "error"}
+        status={status}
+      />
 
-          <CardContent className="grid gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="contacts-query">What do you remember?</Label>
-              <Textarea
-                id="contacts-query"
-                name="q"
-                rows={2}
-                maxLength={200}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                aria-describedby="contacts-hint"
-                aria-invalid={search.phase === "error" ? true : undefined}
-                placeholder="e.g. the person I met at the eBPF talk who worked at a bank"
-              />
-              <p id="contacts-hint" className="text-sm text-muted-foreground">
-                Roughly is fine: we match on meaning as well as words.
-              </p>
-            </div>
+      {state.phase === "error" && <ErrorNotice title="We couldn't search your contacts" message={state.message} />}
+      {state.phase === "loading" && <LoadingList rows={1} rowClass="h-48" />}
 
-            <ExamplePrompts examples={EXAMPLES} onSelect={setQuery} />
-          </CardContent>
-
-          <CardFooter>
-            <Button type="submit" size="lg" disabled={searching} aria-describedby="contacts-status">
-              {searching ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Search aria-hidden="true" />}
-              {searching ? "Searching…" : "Find contact"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-
-      <p id="contacts-status" role="status" className="sr-only">
-        {status}
-      </p>
-
-      {search.phase === "error" && (
-        <Alert variant="destructive">
-          <CircleAlert aria-hidden="true" />
-          <AlertTitle>We couldn&apos;t search your contacts</AlertTitle>
-          <AlertDescription>{search.message}</AlertDescription>
-        </Alert>
-      )}
-
-      {searching && (
-        <div aria-hidden="true" className="grid gap-4">
-          <Skeleton className="h-6 w-56" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      )}
-
-      {search.phase === "done" && (
+      {state.phase === "done" && (
         <section aria-labelledby="contacts-results-heading" className="grid gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="contacts-results-heading" ref={resultsHeading} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
-              {search.results.length === 0 ? "No contact matched" : `${search.results.length} ${search.results.length === 1 ? "contact" : "contacts"} found`}
-            </h2>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setSearch({ phase: "idle" })}>
+            <ResultsHeading id="contacts-results-heading" ref={headingRef}>
+              {results.length === 0 ? "No contact matched" : `${plural(results.length, "contact", "contacts")} found`}
+            </ResultsHeading>
+            <Button type="button" variant="ghost" size="sm" onClick={reset}>
               Clear search
             </Button>
           </div>
-          {search.results.length === 0 ? (
-            <Alert role="status">
-              <UsersRound aria-hidden="true" />
-              <AlertTitle>Nothing close enough</AlertTitle>
-              <AlertDescription>Try fewer details, such as the talk you were at or the kind of company they work for.</AlertDescription>
-            </Alert>
+          {results.length === 0 ? (
+            <EmptyNotice title="Nothing close enough">Try fewer details, such as the talk you were at or the kind of company they work for.</EmptyNotice>
           ) : (
-            <ul className="grid gap-4">
-              {search.results.map((contact) => (
-                <li key={contact.id}>
-                  <ContactCard contact={contact} userId={userId} />
-                </li>
-              ))}
-            </ul>
+            <ContactList contacts={results} userId={userId} />
           )}
         </section>
       )}
 
-      {search.phase !== "done" && (
+      {state.phase !== "done" && (
         <section aria-labelledby="recent-heading" className="grid gap-4">
           <h2 id="recent-heading" className="text-2xl font-semibold tracking-tight">
             Recently met
           </h2>
-          {recent.status === "loading" && (
-            <div aria-hidden="true" className="grid gap-4">
-              <Skeleton className="h-48 w-full" />
-              <Skeleton className="h-48 w-full" />
-            </div>
-          )}
-          {recent.status === "error" && (
-            <Alert variant="destructive">
-              <CircleAlert aria-hidden="true" />
-              <AlertTitle>We couldn&apos;t load your contacts</AlertTitle>
-              <AlertDescription>Check that the service is running, then reload the page.</AlertDescription>
-            </Alert>
-          )}
+          {recent.status === "loading" && <LoadingList rows={2} rowClass="h-48" />}
+          {recent.status === "error" && <ErrorNotice title="We couldn't load your contacts" message="Check that the service is running, then reload the page." />}
           {recent.status === "ok" &&
             (recent.results.length === 0 ? (
               <p className="text-muted-foreground">You haven&apos;t saved any contacts yet. People you meet will show up here.</p>
             ) : (
-              <ul className="grid gap-4">
-                {recent.results.map((contact) => (
-                  <li key={contact.id}>
-                    <ContactCard contact={contact} userId={userId} />
-                  </li>
-                ))}
-              </ul>
+              <ContactList contacts={recent.results} userId={userId} />
             ))}
         </section>
       )}
