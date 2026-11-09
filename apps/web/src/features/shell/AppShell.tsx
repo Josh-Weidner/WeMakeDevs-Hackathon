@@ -4,6 +4,7 @@ import { LikelyFull } from "@/features/rooms/LikelyFull";
 import { PersonaSwitcher } from "@/features/persona/PersonaSwitcher";
 import { SystemStatus } from "@/features/system-status/SystemStatus";
 import { MobileNav } from "./MobileNav";
+import { ShellBody } from "./ShellBody";
 import { ThemeToggle } from "./ThemeToggle";
 import { NavLinks } from "./NavLinks";
 
@@ -52,14 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-8 p-4 md:p-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <main id="main" tabIndex={-1} className="min-w-0 outline-none">
-            {children}
-          </main>
-          <aside aria-label="Live room demand" className="xl:sticky xl:top-24 xl:self-start">
-            <LikelyFull />
-          </aside>
-        </div>
+        <ShellBody panels={{ "next-up": null, demand: <LikelyFull /> }}>{children}</ShellBody>
       </div>
     </div>
   );
