@@ -4,6 +4,7 @@ import {
   createContactsRepository,
   createEmbeddingStore,
   createHighlightsRepository,
+  createPeopleRepository,
   createResourcesRepository,
   createTalksRepository,
   createEsClient,
@@ -36,6 +37,7 @@ const handlers = createHandlers({
     highlights: createHighlightsRepository(es),
     resources: createResourcesRepository(es),
     talks: createTalksRepository(es),
+    people: createPeopleRepository(es),
   },
 });
 

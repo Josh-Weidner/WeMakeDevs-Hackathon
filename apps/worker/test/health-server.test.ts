@@ -63,7 +63,7 @@ describe("worker defaults", () => {
     const handlers = createHandlers({
       store: { get: async () => null, setEmbedding: async () => undefined },
       ai: { embed: async () => [], chatJson: unused },
-      clipRepos: { clips: { save: unused }, contacts: { save: unused }, highlights: { save: unused }, resources: { search: unused }, talks: { search: unused, get: unused } },
+      clipRepos: { clips: { save: unused }, contacts: { save: unused }, highlights: { save: unused }, resources: { search: unused }, talks: { search: unused, get: unused }, people: { getProfile: unused } },
     });
     expect(Object.keys(handlers).sort()).toEqual(["embed-attendee", "embed-contact", "embed-resource", "embed-speaker", "embed-talk", "process-clip"]);
   });

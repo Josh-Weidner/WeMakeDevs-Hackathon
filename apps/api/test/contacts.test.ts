@@ -13,7 +13,7 @@ const contact: ContactResult = {
   company: "Halden Bank", company_type: "bank", met_at_talk_id: "talk-009", met_at_talk_title: "eBPF in Production",
   met_at_time: "2026-11-10T12:20:00-07:00", notes: "Talked about runtime detection on payment clusters.",
 };
-const me = { display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", stack: "k8s", interests: ["gitops"] };
+const me = { display_name: "Alex Rivera", role: "Platform Engineer", bio: "b", company_type: "startup", stack: "k8s", interests: ["gitops"] };
 const ai = (chatJson: ReturnType<typeof vi.fn>) => ({ chatJson } as unknown as Pick<AiClient, "chatJson">);
 
 describe("generateFollowUp", () => {
