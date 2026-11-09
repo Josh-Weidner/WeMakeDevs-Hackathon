@@ -1,0 +1,23 @@
+{
+  "name": "@confy/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env --import @confy/shared/telemetry/register src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --import @confy/shared/telemetry/register dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@confy/shared": "workspace:^",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}
