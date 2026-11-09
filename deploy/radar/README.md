@@ -57,6 +57,9 @@ After (Radar MCP `get_cluster_audit`, 14:03 MT, after `make release` of PR #8 at
 | Reliability | 7 | **3** (podHARisk only) |
 | Total | 10 | **3** |
 
+Radar's Checks page defaults to **Namespace: Any**, which also counts Argo CD and the Radar agent
+(pods we don't own). Filter **Namespace** to `confy` to see the numbers above.
+
 ## Evidence log
 
 | Time (MT) | What | Evidence |
