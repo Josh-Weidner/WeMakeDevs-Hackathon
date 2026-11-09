@@ -7,3 +7,5 @@ export * from "./ai/openai.js";
 export * from "./telemetry/metrics.js";
 export * from "./telemetry/tracing.js";
 export * from "./telemetry/logger.js";
+export * from "./es/mappings/index.js";
+export * from "./es/setup.js";
