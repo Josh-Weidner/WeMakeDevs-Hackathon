@@ -31,8 +31,8 @@ cluster: ## Create the local kind cluster + namespace
 secrets: ## Create/update the confy-secrets Secret from .env (never committed)
 	@test -f .env || { echo "Missing .env: cp .env.example .env and fill it in"; exit 1; }
 	kubectl -n $(NS) create secret generic confy-secrets \
-  --from-env-file=<(grep -E '^($(SECRET_KEYS))=' .env) \
-  --dry-run=client -o yaml | kubectl apply -f -
+	  --from-env-file=<(grep -E '^($(SECRET_KEYS))=' .env) \
+	  --dry-run=client -o yaml | kubectl apply -f -
 
 images: ## Build all images tagged with the git SHA
 	for app in $(APPS); do $(BUILDX) build --load -f apps/$$app/Dockerfile -t confy-$$app:$(TAG) . ; done
@@ -69,7 +69,7 @@ break-worker: ## DEMO: OOMKill the worker (patches only the live worker; Argo CD
 
 fix-worker: ## DEMO fallback: Argo CD sync back to git (the real fix is merging the fix PR)
 	kubectl -n argocd patch application confy --type merge \
-  -p '{"operation":{"initiatedBy":{"username":"make fix-worker"},"sync":{"prune":true}}}'
+	  -p '{"operation":{"initiatedBy":{"username":"make fix-worker"},"sync":{"prune":true}}}'
 	kubectl -n $(NS) rollout status deploy/worker --timeout=180s
 
 status: ## Pods in the confy namespace
