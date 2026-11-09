@@ -60,6 +60,7 @@ export function createPeopleRepository(es: EsClient): PeopleRepository {
           intro_prefs: a.intro_prefs,
           score: h._score ?? null,
           opener: null, // filled in by the api service
+          linkedin_url: a.linkedin_url ?? null,
         });
       });
     },

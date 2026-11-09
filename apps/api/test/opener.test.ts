@@ -5,7 +5,7 @@ import { generateOpeners } from "../src/services/opener.js";
 const logger = createLogger("test", "silent");
 const person = (id: string): PersonMatch => ({
   id, display_name: `${id} Costa`, role: "SRE", company_type: "telco", bio: "Runs bare metal.", stack: "bare metal k8s",
-  interests: ["networking"], intro_prefs: "1:1", score: 1, opener: null,
+  interests: ["networking"], intro_prefs: "1:1", score: 1, opener: null, linkedin_url: null,
 });
 const me = { display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", stack: "k8s on EKS", interests: ["gitops"] };
 const ai = (chatJson: ReturnType<typeof vi.fn>) => ({ chatJson } as unknown as Pick<AiClient, "chatJson">);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AttendeeDoc, ContactDoc, Level, RoomDoc, TalkDoc } from "./documents.js";
+import { AttendeeDoc, ContactDoc, Level, LinkedInUrl, RoomDoc, TalkDoc } from "./documents.js";
 
 /** Query-string booleans arrive as "true"/"false" strings. */
 const queryBool = z
@@ -66,6 +66,8 @@ export const PersonMatch = AttendeeDoc.pick({
   score: z.number().nullable(),
   /** A suggested conversation starter written for this pairing, or null if one couldn't be generated. */
   opener: z.string().nullable(),
+  /** Present only if this attendee opted in to sharing a LinkedIn link. */
+  linkedin_url: LinkedInUrl.nullable(),
 });
 export type PersonMatch = z.infer<typeof PersonMatch>;
 

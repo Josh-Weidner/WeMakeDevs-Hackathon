@@ -130,9 +130,28 @@ describe("people repository", () => {
     const body = JSON.stringify(search.mock.calls[0]?.[0]);
     expect(body).toContain('"open_to_intros":true');
     expect(body).toContain('"ids":{"values":["demo-alex"]}');
-    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2, opener: null });
+    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2, opener: null, linkedin_url: null });
     expect(out[0]).not.toHaveProperty("open_to_intros");
     expect(out[0]).not.toHaveProperty("visibility");
+  });
+});
+
+describe("people repository: opt-in LinkedIn link", () => {
+  const base = { display_name: "Rafael Costa", role: "SRE", company_type: "telco", bio: "b", stack: "bare metal", interests: ["a"], open_to_intros: true, intro_prefs: "1:1", visibility: "public" };
+
+  it("exposes the link only for attendees who shared one", async () => {
+    const shared = "https://www.linkedin.com/search/results/people/?keywords=Rafael%20Costa";
+    const search = searchOf([
+      { _id: "a", _score: 1, _source: { ...base, linkedin_url: shared } },
+      { _id: "b", _score: 1, _source: base },
+    ]);
+    const out = await createPeopleRepository({ search } as unknown as EsClient).match({ excludeId: "x", text: "t", limit: 3 });
+    expect(out.map((m) => m.linkedin_url)).toEqual([shared, null]);
+  });
+
+  it("refuses to return a stored link that is not on linkedin.com", async () => {
+    const search = searchOf([{ _id: "a", _score: 1, _source: { ...base, linkedin_url: "https://evil.example/in/x" } }]);
+    await expect(createPeopleRepository({ search } as unknown as EsClient).match({ excludeId: "x", text: "t", limit: 3 })).rejects.toThrow();
   });
 });
 
