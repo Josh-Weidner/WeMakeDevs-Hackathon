@@ -4,6 +4,7 @@ import { LikelyFull } from "@/features/rooms/LikelyFull";
 import { PersonaSwitcher } from "@/features/persona/PersonaSwitcher";
 import { SystemStatus } from "@/features/system-status/SystemStatus";
 import { MobileNav } from "./MobileNav";
+import { ThemeToggle } from "./ThemeToggle";
 import { NavLinks } from "./NavLinks";
 
 function Brand() {
@@ -45,7 +46,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="md:hidden">
             <Brand />
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <PersonaSwitcher />
           </div>
         </header>

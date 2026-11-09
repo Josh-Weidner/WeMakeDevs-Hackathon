@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { ScheduleBuilder } from "@/features/schedule/ScheduleBuilder";
+
+export const metadata: Metadata = { title: "Schedule" };
 
 export default function SchedulePage() {
   return (

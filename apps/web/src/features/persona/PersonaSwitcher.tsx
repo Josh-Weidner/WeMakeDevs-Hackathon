@@ -14,8 +14,12 @@ export function PersonaSwitcher() {
         Viewing as
       </Label>
       <Select value={persona.id} onValueChange={setPersonaId}>
-        <SelectTrigger id="persona-select" className="min-w-40" aria-label="Viewing as">
-          <SelectValue />
+        {/* Narrow screens show the name only; the role appears from `lg` up and always in the open list. */}
+        <SelectTrigger id="persona-select" className="max-w-[9.5rem] min-w-0 sm:max-w-none sm:min-w-40" aria-label="Viewing as">
+          <SelectValue>
+            <span className="truncate">{persona.name}</span>
+            <span className="ml-2 hidden text-xs text-muted-foreground lg:inline">{persona.role}</span>
+          </SelectValue>
         </SelectTrigger>
         <SelectContent align="end">
           {personas.map((p) => (

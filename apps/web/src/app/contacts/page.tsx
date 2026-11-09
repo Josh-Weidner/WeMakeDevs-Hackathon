@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ContactsView } from "@/features/contacts/ContactsView";
 import { PageHeader } from "@/features/shell/PageHeader";
+
+export const metadata: Metadata = { title: "Contacts" };
 
 export default function ContactsPage() {
   return (

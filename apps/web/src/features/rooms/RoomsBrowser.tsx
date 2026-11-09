@@ -28,7 +28,7 @@ export function RoomsBrowser({ rooms }: { rooms: RoomResult[] }) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Name, floor, or an accessibility feature (e.g. hearing loop)"
+              placeholder="Name, floor or feature"
               aria-describedby="rooms-count"
             />
           </div>
