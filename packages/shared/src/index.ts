@@ -9,3 +9,6 @@ export * from "./telemetry/tracing.js";
 export * from "./telemetry/logger.js";
 export * from "./es/mappings/index.js";
 export * from "./es/setup.js";
+export * from "./es/embedding.js";
+export * from "./es/repositories/jobs.js";
+export * from "./es/repositories/embeddings.js";

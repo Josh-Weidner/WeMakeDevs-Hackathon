@@ -1,5 +1,4 @@
-import type { EsClient } from "@confy/shared";
-import { INDEX } from "@confy/shared";
+import { embedJobType, INDEX, type EmbedKind, type EsClient, type JobsRepository } from "@confy/shared";
 import type { SeedData } from "./generate.js";
 
 /** Which seed collection goes to which index alias. */
@@ -12,17 +11,29 @@ export const COLLECTION_INDEX: Record<keyof SeedData, string> = {
   resources: INDEX.resources,
 };
 
+/** Collections whose documents get a vector. Rooms are small structured data and are not embedded. */
+export const COLLECTION_EMBED_KIND: Partial<Record<keyof SeedData, EmbedKind>> = {
+  talks: "talk",
+  speakers: "speaker",
+  attendees: "attendee",
+  contacts: "contact",
+  resources: "resource",
+};
+
 export interface LoadResult {
   index: string;
   indexed: number;
+  /** Embedding jobs enqueued for this index. */
+  queued: number;
 }
 
 /**
  * Bulk-index the seed into the aliases. Deterministic `_id`s make this idempotent: re-running
  * overwrites the same documents instead of duplicating them. `refresh: "wait_for"` is fine here
- * (seed script), never on the request path.
+ * (seed script), never on the request path. With a jobs repository it also enqueues one embedding
+ * job per embeddable document (deterministic job ids, so re-running re-queues rather than duplicates).
  */
-export async function loadSeed(client: EsClient, data: SeedData): Promise<LoadResult[]> {
+export async function loadSeed(client: EsClient, data: SeedData, jobs?: JobsRepository): Promise<LoadResult[]> {
   const results: LoadResult[] = [];
   for (const [collection, index] of Object.entries(COLLECTION_INDEX) as Array<[keyof SeedData, string]>) {
     const docs = data[collection] as Array<{ _id: string; _source: object }>;
@@ -36,7 +47,13 @@ export async function loadSeed(client: EsClient, data: SeedData): Promise<LoadRe
         .map((e) => `${e?.type}: ${e?.reason}`);
       throw new Error(`Bulk load into ${index} had errors: ${failed.join(" | ")}`);
     }
-    results.push({ index, indexed: docs.length });
+
+    const kind = COLLECTION_EMBED_KIND[collection];
+    const queued =
+      jobs && kind
+        ? await jobs.enqueue(docs.map((d) => ({ id: `${embedJobType(kind)}:${d._id}`, type: embedJobType(kind), payload: { id: d._id } })))
+        : 0;
+    results.push({ index, indexed: docs.length, queued });
   }
   return results;
 }
