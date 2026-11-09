@@ -3,6 +3,7 @@
 import { ContactFollowUpResponse, type ContactResult } from "@confy/shared/contracts";
 import { CalendarClock, CircleAlert, LoaderCircle, PenLine } from "lucide-react";
 import { useState } from "react";
+import { TalkLink } from "@/components/TalkLink";
 import { DraftNote } from "@/components/DraftNote";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,7 +52,14 @@ export function ContactCard({ contact, userId }: { contact: ContactResult; userI
           <span>
             {contact.met_at_talk_title ? (
               <>
-                Met at <strong>{contact.met_at_talk_title}</strong>
+                Met at{" "}
+                {contact.met_at_talk_id ? (
+                  <strong>
+                    <TalkLink id={contact.met_at_talk_id}>{contact.met_at_talk_title}</TalkLink>
+                  </strong>
+                ) : (
+                  <strong>{contact.met_at_talk_title}</strong>
+                )}
               </>
             ) : (
               "Met"

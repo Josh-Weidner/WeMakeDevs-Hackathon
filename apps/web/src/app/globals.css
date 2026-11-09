@@ -2,8 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the operating system (no toggle: it's a demo). */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* Dark mode is the `.dark` class on <html>, set by the theme provider (System / Light / Dark). */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -65,7 +65,7 @@
   --accent-foreground: oklch(0.28 0.08 262);
   --destructive: oklch(0.5 0.21 27);
   --border: oklch(0.9 0.008 262);
-  --input: oklch(0.82 0.01 262);
+  --input: oklch(0.6 0.02 262); /* 3.5:1+ on every surface (WCAG 1.4.11 control boundaries) */
   --ring: oklch(0.55 0.2 263);
   --warning: oklch(0.95 0.07 85);
   --warning-foreground: oklch(0.42 0.1 62);
@@ -82,39 +82,37 @@
   --sidebar-ring: oklch(0.55 0.2 263);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.16 0.015 262);
-    --foreground: oklch(0.96 0.005 262);
-    --card: oklch(0.21 0.02 262);
-    --card-foreground: oklch(0.96 0.005 262);
-    --popover: oklch(0.23 0.02 262);
-    --popover-foreground: oklch(0.96 0.005 262);
-    --primary: oklch(0.76 0.13 263);
-    --primary-foreground: oklch(0.2 0.05 263);
-    --secondary: oklch(0.27 0.02 262);
-    --secondary-foreground: oklch(0.96 0.005 262);
-    --muted: oklch(0.27 0.02 262);
-    --muted-foreground: oklch(0.74 0.02 262);
-    --accent: oklch(0.3 0.04 262);
-    --accent-foreground: oklch(0.96 0.005 262);
-    --destructive: oklch(0.72 0.17 22);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 22%);
-    --ring: oklch(0.7 0.15 263);
-    --warning: oklch(0.3 0.06 75);
-    --warning-foreground: oklch(0.86 0.13 85);
-    --success: oklch(0.28 0.05 155);
-    --success-foreground: oklch(0.85 0.12 155);
-    --sidebar: oklch(0.19 0.018 262);
-    --sidebar-foreground: oklch(0.94 0.005 262);
-    --sidebar-primary: oklch(0.76 0.13 263);
-    --sidebar-primary-foreground: oklch(0.2 0.05 263);
-    --sidebar-accent: oklch(0.28 0.04 262);
-    --sidebar-accent-foreground: oklch(0.96 0.005 262);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.7 0.15 263);
-  }
+.dark {
+  --background: oklch(0.16 0.015 262);
+  --foreground: oklch(0.96 0.005 262);
+  --card: oklch(0.21 0.02 262);
+  --card-foreground: oklch(0.96 0.005 262);
+  --popover: oklch(0.23 0.02 262);
+  --popover-foreground: oklch(0.96 0.005 262);
+  --primary: oklch(0.76 0.13 263);
+  --primary-foreground: oklch(0.2 0.05 263);
+  --secondary: oklch(0.27 0.02 262);
+  --secondary-foreground: oklch(0.96 0.005 262);
+  --muted: oklch(0.27 0.02 262);
+  --muted-foreground: oklch(0.74 0.02 262);
+  --accent: oklch(0.3 0.04 262);
+  --accent-foreground: oklch(0.96 0.005 262);
+  --destructive: oklch(0.72 0.17 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 22%);
+  --ring: oklch(0.7 0.15 263);
+  --warning: oklch(0.3 0.06 75);
+  --warning-foreground: oklch(0.86 0.13 85);
+  --success: oklch(0.28 0.05 155);
+  --success-foreground: oklch(0.85 0.12 155);
+  --sidebar: oklch(0.19 0.018 262);
+  --sidebar-foreground: oklch(0.94 0.005 262);
+  --sidebar-primary: oklch(0.76 0.13 263);
+  --sidebar-primary-foreground: oklch(0.2 0.05 263);
+  --sidebar-accent: oklch(0.28 0.04 262);
+  --sidebar-accent-foreground: oklch(0.96 0.005 262);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.7 0.15 263);
 }
 
 @layer base {

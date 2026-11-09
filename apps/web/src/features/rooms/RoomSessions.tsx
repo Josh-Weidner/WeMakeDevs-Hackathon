@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { SessionDay } from "@/lib/rooms/crowd";
 import { clock, levelLabel } from "@/lib/schedule/format";
-import { CrowdBadge } from "./CrowdBadge";
+import { BookmarkButton } from "@/components/BookmarkButton";
+import { CrowdBadge } from "@/components/CrowdBadge";
+import { TalkLink } from "@/components/TalkLink";
 
 /** A room's sessions, one timeline per day, each with the expected crowd and any captions or stream links. */
 export function RoomSessions({ days }: { days: SessionDay[] }) {
@@ -37,7 +39,9 @@ export function RoomSessions({ days }: { days: SessionDay[] }) {
                     </p>
 
                     <div className="grid gap-2">
-                      <h4 className="text-base leading-snug font-semibold">{talk.title}</h4>
+                      <h4 className="text-base leading-snug font-semibold">
+                        <TalkLink id={talk.id}>{talk.title}</TalkLink>
+                      </h4>
                       <p className="text-sm text-muted-foreground">{talk.speaker_names.join(", ")}</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant="secondary">{levelLabel(talk.level)}</Badge>
@@ -67,6 +71,9 @@ export function RoomSessions({ days }: { days: SessionDay[] }) {
                           )}
                         </div>
                       )}
+                      <div>
+                        <BookmarkButton talkId={talk.id} title={talk.title} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

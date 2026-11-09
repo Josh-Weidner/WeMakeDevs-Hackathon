@@ -3,8 +3,8 @@
 import { usePersona } from "@/lib/persona/PersonaProvider";
 import { ContactsFinder } from "./ContactsFinder";
 
-/** Keyed by persona: switching "Viewing as" remounts the finder, so one persona's contacts never linger for another. */
-export function ContactsView() {
+/** Keyed by persona and request: switching personas or incoming requests remounts the finder. */
+export function ContactsView({ initialQuery }: { initialQuery?: string }) {
   const { persona } = usePersona();
-  return <ContactsFinder key={persona.id} userId={persona.id} />;
+  return <ContactsFinder key={`${persona.id}:${initialQuery ?? ""}`} userId={persona.id} initialQuery={initialQuery} />;
 }

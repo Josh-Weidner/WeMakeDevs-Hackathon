@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { ClipMode } from "@/features/clip/ClipMode";
 import { PageHeader } from "@/features/shell/PageHeader";
+
+export const metadata: Metadata = { title: "Clip" };
 
 export default function ClipPage() {
   return (

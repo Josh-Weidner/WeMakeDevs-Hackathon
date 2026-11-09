@@ -1,17 +1,21 @@
 import { CalendarCheck2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { LikelyFull } from "@/features/rooms/LikelyFull";
+import { NextUp } from "@/features/schedule/NextUp";
 import { PersonaSwitcher } from "@/features/persona/PersonaSwitcher";
 import { SystemStatus } from "@/features/system-status/SystemStatus";
-import { DemandRail } from "./DemandRail";
+import { CommandPalette } from "./CommandPalette";
 import { MobileNav } from "./MobileNav";
+import { ShellBody } from "./ShellBody";
+import { ThemeToggle } from "./ThemeToggle";
 import { NavLinks } from "./NavLinks";
 
-function Brand() {
+/** `compact` keeps just the icon on very narrow screens (the name stays available to assistive tech). */
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <p className="flex items-center gap-2 text-lg font-semibold tracking-tight">
       <CalendarCheck2 aria-hidden="true" className="size-5 text-primary" />
-      Confy
+      <span className={compact ? "sr-only min-[480px]:not-sr-only" : undefined}>Confy</span>
     </p>
   );
 }
@@ -44,21 +48,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-8">
           <MobileNav />
           <div className="md:hidden">
-            <Brand />
+            <Brand compact />
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <CommandPalette />
+            <ThemeToggle />
             <PersonaSwitcher />
           </div>
         </header>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-8 p-4 md:p-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <main id="main" tabIndex={-1} className="min-w-0 outline-none">
-            {children}
-          </main>
-          <DemandRail>
-            <LikelyFull />
-          </DemandRail>
-        </div>
+        <ShellBody panels={{ "next-up": <NextUp />, demand: <LikelyFull /> }}>{children}</ShellBody>
       </div>
     </div>
   );

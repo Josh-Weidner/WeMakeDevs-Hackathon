@@ -34,6 +34,18 @@ describe("demand events", () => {
     }
   });
 
+  it("'tipping' leaves the hot talk just under capacity, so exactly one more bookmark pushes it over", () => {
+    const tipping = generateDemandEvents(data, now, 7, "tipping");
+    const hot = data.talks.find((t) => t._source.title === HOT_TALK_TITLE)!;
+    const capacity = data.rooms.find((r) => r._id === hot._source.room_id)!._source.capacity;
+    const mine = tipping.filter((e) => e.talk_id === hot._id);
+    const forecast = mine.filter((e) => e.event_type === "bookmark").length + 0.25 * mine.filter((e) => e.event_type === "search_hit").length;
+
+    expect(forecast).toBeLessThanOrEqual(capacity);
+    expect(forecast / capacity).toBeGreaterThanOrEqual(0.7); // "Getting busy" until someone bookmarks
+    expect(forecast + 1).toBeGreaterThan(capacity); // one bookmark tips it
+  });
+
   it("is deterministic and sorted by time", () => {
     expect(generateDemandEvents(data, now)).toEqual(events);
     expect(events.map((e) => e["@timestamp"])).toEqual([...events.map((e) => e["@timestamp"])].sort());

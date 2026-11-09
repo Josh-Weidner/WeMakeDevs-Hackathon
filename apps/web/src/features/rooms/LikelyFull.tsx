@@ -1,4 +1,5 @@
 import { DemandResponse } from "@confy/shared/contracts";
+import { CircleCheck } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +19,21 @@ export async function LikelyFull() {
   const demand = await fetchDemand();
   const full = demand?.talks.filter((t) => t.likely_full) ?? [];
 
+  // Nothing to warn about: a single quiet line instead of an empty card, so the rail never wastes space.
+  if (full.length === 0) {
+    return (
+      <section aria-labelledby="likely-full-heading">
+        <h2 id="likely-full-heading" className="sr-only">
+          Likely to fill up
+        </h2>
+        <p className="flex items-start gap-2 text-sm text-muted-foreground">
+          <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          No sessions are expected to be full right now.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -27,10 +43,7 @@ export async function LikelyFull() {
         <CardDescription>Live demand from searches and bookmarks.</CardDescription>
       </CardHeader>
       <CardContent>
-        {full.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No sessions are expected to be full right now.</p>
-        ) : (
-          <ul className="grid gap-4">
+        <ul className="grid gap-4">
             {full.map((t, index) => (
               <li key={t.talk_id} className="grid gap-2">
                 {index > 0 && <Separator className="mb-2" />}
@@ -45,8 +58,7 @@ export async function LikelyFull() {
                 </div>
               </li>
             ))}
-          </ul>
-        )}
+        </ul>
       </CardContent>
     </Card>
   );

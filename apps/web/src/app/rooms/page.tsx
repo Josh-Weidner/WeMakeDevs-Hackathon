@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { RoomsBrowser } from "@/features/rooms/RoomsBrowser";
 import { fetchRooms } from "@/features/rooms/data";
 import { PageHeader } from "@/features/shell/PageHeader";
+
+export const metadata: Metadata = { title: "Rooms" };
 
 export default async function RoomsPage() {
   const rooms = await fetchRooms();

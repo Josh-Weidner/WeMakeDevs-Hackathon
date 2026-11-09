@@ -5,8 +5,15 @@ import { createRng } from "./rng.js";
 /** The talk the demo shows as "Likely full": a popular intro session in the 40-seat room. */
 export const HOT_TALK_TITLE = "Multi-Tenancy 101: Namespaces, Quotas, and Boundaries";
 
-const HOT_BOOKMARKS = 30;
-const HOT_SEARCH_HITS = 60; // forecast = 30 + 0.25 × 60 = 45 > 40 seats
+/**
+ * "full": already over capacity (forecast = 30 + 0.25 × 60 = 45 > 40 seats), for showing the warning.
+ * "tipping": just under (24 + 0.25 × 62 = 39.5 < 40), so ONE more bookmark makes it "Likely full" live.
+ */
+export type HotLevel = "full" | "tipping";
+const HOT_COUNTS: Record<HotLevel, { bookmarks: number; searchHits: number }> = {
+  full: { bookmarks: 30, searchHits: 60 },
+  tipping: { bookmarks: 24, searchHits: 62 },
+};
 const WARM_TALKS = 10;
 const SPREAD_MINUTES = 45;
 
@@ -14,7 +21,7 @@ const SPREAD_MINUTES = 45;
  * Demand events relative to `now`, so the forecast window (last 60 min) always sees them.
  * One talk is pushed over its room capacity; a handful of others get light, comfortable demand.
  */
-export function generateDemandEvents(data: SeedData, now: Date, seed = 7): DemandEventDoc[] {
+export function generateDemandEvents(data: SeedData, now: Date, seed = 7, level: HotLevel = "full"): DemandEventDoc[] {
   const rng = createRng(seed);
   const users = data.attendees.map((a) => a._id);
   const hot = data.talks.find((t) => t._source.title === HOT_TALK_TITLE);
@@ -28,8 +35,8 @@ export function generateDemandEvents(data: SeedData, now: Date, seed = 7): Deman
     }
   };
 
-  add(hot, "bookmark", HOT_BOOKMARKS);
-  add(hot, "search_hit", HOT_SEARCH_HITS);
+  add(hot, "bookmark", HOT_COUNTS[level].bookmarks);
+  add(hot, "search_hit", HOT_COUNTS[level].searchHits);
 
   const others = rng.shuffle(data.talks.filter((t) => t._id !== hot._id && t._source.format !== "keynote")).slice(0, WARM_TALKS);
   for (const talk of others) {
