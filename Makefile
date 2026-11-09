@@ -19,7 +19,7 @@ SECRET_KEYS := ELASTICSEARCH_URL|ELASTICSEARCH_API_KEY|OPENAI_API_KEY|OTEL_EXPOR
 
 render = kubectl kustomize $(1) | sed "s/IMAGE_TAG/$(TAG)/g"
 
-.PHONY: help cluster secrets images kind-load deploy argocd up break-worker fix-worker status port-forward logs-% destroy
+.PHONY: help cluster secrets images kind-load deploy argocd release up break-worker fix-worker status port-forward logs-% destroy
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_%-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n",$$1,$$2}'
@@ -40,21 +40,29 @@ images: ## Build all images tagged with the git SHA
 kind-load: ## Load images into the kind cluster
 	for app in $(APPS); do kind load docker-image confy-$$app:$(TAG) --name $(CLUSTER) ; done
 
-deploy: images kind-load ## Build, load, and apply the base manifests
+deploy: images kind-load ## Without Argo CD only: build, load, and kubectl-apply the base manifests
 	$(call render,deploy/k8s/base) | kubectl apply -f -
 	kubectl -n $(NS) rollout status deploy/api deploy/web --timeout=120s
 
 argocd: ## Point Argo CD at this repo (tracks REVISION, runs images tagged TAG)
 	sed -e "s/IMAGE_TAG/$(TAG)/g" -e "s|TARGET_REVISION|$(REVISION)|g" deploy/argocd/confy.yaml | kubectl apply -f -
 
+release: ## Build images for origin/main and roll them out through Argo CD (run on a clean main)
+	@git fetch -q origin main
+	@test "$$(git rev-parse HEAD)" = "$$(git rev-parse origin/main)" || { echo "release: check out main at origin/main first"; exit 1; }
+	@test -z "$$(git status --porcelain)" || { echo "release: working tree is dirty"; exit 1; }
+	$(MAKE) images argocd REVISION=main TAG=$(TAG)
+	kubectl -n $(NS) rollout status deploy/api deploy/web deploy/worker --timeout=180s
+
 up: cluster secrets deploy ## Everything from zero
 
-break-worker: ## DEMO: starve the worker of memory (OOMKilled)
-	$(call render,deploy/k8s/overlays/chaos) | kubectl apply -f -
+break-worker: ## DEMO: OOMKill the worker (patches only the live worker; Argo CD shows OutOfSync)
+	kubectl -n $(NS) patch deployment worker --type strategic --patch-file deploy/k8s/overlays/chaos/worker-oom.yaml
 
-fix-worker: ## DEMO: restore the worker's healthy resources
-	$(call render,deploy/k8s/base) | kubectl apply -f -
-	kubectl -n $(NS) rollout status deploy/worker --timeout=120s
+fix-worker: ## DEMO fallback: Argo CD sync back to git (the real fix is merging the fix PR)
+	kubectl -n argocd patch application confy --type merge \
+	  -p '{"operation":{"initiatedBy":{"username":"make fix-worker"},"sync":{"prune":true}}}'
+	kubectl -n $(NS) rollout status deploy/worker --timeout=180s
 
 status: ## Pods in the confy namespace
 	kubectl -n $(NS) get pods -o wide
