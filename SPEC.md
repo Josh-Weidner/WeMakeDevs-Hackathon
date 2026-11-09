@@ -44,7 +44,7 @@ Conferences are overwhelming. Attendees can't find the right talks, rooms fill u
 | **Sonar: Never Merge Broken** | Gitar is part of how we built (features land through reviewed PRs). **Project-aware setup** with review instructions and rules. **Uses CI failure diagnosis and auto-apply.** | GitHub App, every feature as a PR, a11y rule | ⚠️ We need a **GitHub Actions CI** so Gitar has failures to diagnose. Use **auto-apply** at least once |
 | **Merge Forward** | Makes conferences more inclusive and accessible | Low-stimulation mode, planned intros, screen-reader UI, captions, step-free routes | ✅ |
 
-⚠️ CHECK: Our notes said "instrument with Dash0 in the first hour" and put rules in `.gitar/rules/`. The official resources page says review instructions go in **`.gitar/review/`** and doesn't mention a first-hour rule. Confirm with the Gitar table or the docs. Instrumenting early is still the right call.
+✅ Resolved: Gitar uses **both** `.gitar/review/*.md` (review instructions) and `.gitar/rules/*.md` (custom rules with frontmatter). "Dash0 in the first hour" isn't an official rule, but we're doing it anyway.
 
 ## 4. Architecture
 
@@ -123,7 +123,7 @@ Seed data: **synthetic** (decided). About 60 talks over 2 days, 8 rooms with mix
 ## 9. Gitar and the PR workflow
 
 - Install the Gitar GitHub App on the (public) repo. Every feature lands as a PR, and nobody pushes to main.
-- `.gitar/review/` (⚠️ CHECK path) gets project review instructions covering our conventions, such as "every ES query on `contacts` must filter on `owner_id`", "no PII in logs", and "every new endpoint has an OTel span".
+- `.gitar/review/` gets project review instructions, and `.gitar/rules/` holds custom check rules covering our conventions, such as "every ES query on `contacts` must filter on `owner_id`", "no PII in logs", and "every new endpoint has an OTel span".
 - **Accessibility rule:** every `<img>` has `alt`, every button and icon-button has an accessible name, status is never shown by color alone, and every form input has a label.
 - **CI (GitHub Actions):** lint, unit tests, and an a11y check (axe / eslint-plugin-jsx-a11y). Gitar diagnoses CI failures and we use **auto-apply** at least once.
 - Demo evidence: **PR A**, where Gitar caught a real bug (for example, the contacts query is missing its `owner_id` filter, so contacts leak between users). **PR B**, where Gitar caught an a11y issue.

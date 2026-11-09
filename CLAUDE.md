@@ -142,7 +142,7 @@ ES is the **core data layer**. Every persisted entity lives in ES: no side datab
 - Branches: `feat/<area>-<short>`, `fix/…`, `chore/…`, `docs/…`, `contract/…` (contract-only PRs). Keep PRs small: one feature slice each.
 - PR description: what and why, how it was tested, which track(s) it advances, and screenshots for UI.
 - CI (`.github/workflows/ci.yml`) must pass: typecheck, lint (including `eslint-plugin-jsx-a11y`), unit tests, build. When CI fails, let **Gitar diagnose it and use auto-apply** where it fits. Keep at least one example for the demo.
-- Gitar review instructions live in `.gitar/review/` (confirm the exact path in the Gitar docs) and must mirror the key rules in this file, especially: the `owner_id` filter on private indices, no PII in telemetry, layering rules, and the accessibility rules below.
+- Gitar config (per [docs.gitar.ai](https://docs.gitar.ai/features/rules.md)): **review instructions** are plain markdown in `.gitar/review/*.md`, and **custom rules** are markdown with YAML frontmatter (`title`, `description`, `when`, `actions`, `type: check|automation`) in `.gitar/rules/*.md`. To apply a Gitar suggestion, tick its checkbox or reply `gitar fix`. Together they must mirror the key rules in this file, especially: the `owner_id` filter on private indices, no PII in telemetry, layering rules, and the accessibility rules below.
 - Commits are imperative and concise (`Add hybrid talk search`). Disclose AI assistance (see §9).
 
 ## 7. Accessibility + inclusion (track: Merge Forward)
