@@ -1,4 +1,4 @@
-import { createLogger, type ClipDoc } from "@confy/shared";
+import { CLIP_MAX_BYTES, createLogger, type ClipDoc } from "@confy/shared";
 import type { FastifyInstance } from "fastify";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildServer } from "../src/server.js";
@@ -63,6 +63,25 @@ describe("POST /v1/clips", () => {
     });
     // No audio is ever handed to the queue.
     expect(JSON.stringify(job)).not.toContain("audio");
+  });
+
+  it.each([
+    ["1 min", 60],
+    ["5 min", 300],
+  ])("accepts a full-size %s WAV from the Save buttons (16 kHz mono, as the browser encodes it)", async (_label, seconds) => {
+    const d = deps();
+    const wav = Buffer.alloc(44 + seconds * 16_000 * 2, 1);
+    const res = await (await server(d)).inject({ method: "POST", url: `/v1/clips?durationS=${seconds}`, headers: { "content-type": "audio/wav", "x-user-id": "demo-alex" }, payload: wav });
+    expect(res.statusCode).toBe(202);
+    expect((d.ai.transcribe.mock.calls[0] as unknown as [Uint8Array])[0].byteLength).toBe(wav.byteLength);
+  });
+
+  it("rejects uploads over the size limit with a clear error, without transcribing", async () => {
+    const d = deps();
+    const res = await (await server(d)).inject({ method: "POST", url: "/v1/clips?durationS=300", headers: { "content-type": "audio/wav" }, payload: Buffer.alloc(CLIP_MAX_BYTES + 1, 1) });
+    expect(res.statusCode).toBe(413);
+    expect(res.json().error.code).toBeTruthy();
+    expect(d.ai.transcribe).not.toHaveBeenCalled();
   });
 
   it("rejects non-audio bodies", async () => {

@@ -34,10 +34,10 @@ export function ClipMode() {
 
   const announce = useCallback((message: string) => setAnnouncement(message), []);
 
-  async function send(blob: Blob, seconds: number) {
+  async function send(blob: Blob, seconds: number, partial = false) {
     setError(null);
     setSaving(true);
-    announce(`Saving the last ${formatDuration(seconds)}…`);
+    announce(partial ? `Saving all ${formatDuration(seconds)} you've recorded so far…` : `Saving the last ${formatDuration(seconds)}…`);
     try {
       const accepted = await api.upload(`/v1/clips?durationS=${Math.min(seconds, CLIP_MAX_SECONDS)}`, ClipAccepted, blob, { userId: persona.id });
       setClips((prev) => [{ id: accepted.id, seconds }, ...prev]);
@@ -54,10 +54,10 @@ export function ClipMode() {
   function save(wantSeconds: number) {
     const slice = recorder.take(wantSeconds);
     if (!slice) {
-      setError("Nothing to save yet. Keep listening for a few seconds first.");
+      setError("Nothing to save yet. Keep listening for a second or two first.");
       return;
     }
-    void send(slice.blob, slice.seconds);
+    void send(slice.blob, slice.seconds, slice.partial);
   }
 
   async function uploadFile(event: ChangeEvent<HTMLInputElement>) {
@@ -133,6 +133,12 @@ export function ClipMode() {
               </span>
             )}
           </div>
+
+          {listening && recorder.seconds < 60 && (
+            <p className="text-sm text-muted-foreground">
+              Only {formatDuration(recorder.seconds)} recorded so far. Either button saves all of it.
+            </p>
+          )}
 
           {recorder.error && (
             <Alert variant="destructive">
