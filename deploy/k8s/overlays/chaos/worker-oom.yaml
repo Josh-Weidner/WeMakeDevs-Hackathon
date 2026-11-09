@@ -1,0 +1,21 @@
+# DEMO CHAOS: "It's keynote time and everyone opens the app."
+# Starves the worker of memory so it gets OOMKilled → CrashLoopBackOff, and switches it to
+# Recreate so the old healthy pods are torn down too: a real outage (job backlog in Dash0),
+# not a stuck rollout hidden behind a healthy pod.
+# Applied by `make break-worker` as a strategic-merge patch on the live worker only.
+# Reverted by syncing git's desired state: the fix PR merging to main, or `make fix-worker`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    spec:
+      containers:
+        - name: worker
+          resources:
+            requests: { memory: 48Mi }
+            limits: { memory: 48Mi }

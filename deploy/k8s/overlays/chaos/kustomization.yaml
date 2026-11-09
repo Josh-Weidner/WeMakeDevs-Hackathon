@@ -1,19 +1,9 @@
-# DEMO CHAOS: "It's keynote time and everyone opens the app."
-# Starves the worker of memory so it gets OOMKilled → CrashLoopBackOff.
+# Renders the broken state for review (`kubectl kustomize deploy/k8s/overlays/chaos`).
 # Radar's AI Investigation should find the cause; Dash0 shows the error spike / job backlog.
-# Apply: make break-worker   Revert: make fix-worker
+# Apply: make break-worker   Revert: merge the fix PR, or make fix-worker
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
 patches:
-  - target:
-      kind: Deployment
-      name: worker
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 48Mi
-      - op: replace
-        path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 48Mi
+  - path: worker-oom.yaml

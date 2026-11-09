@@ -126,6 +126,7 @@ ES is the **core data layer**. Every persisted entity lives in ES: no side datab
 - Config goes in a ConfigMap and secrets in Secrets created from a local `.env` (`make secrets`). **Never commit `.env` or Secret manifests with values.** Keep `.env.example` updated whenever you add a variable.
 - Images use multi-stage Dockerfiles, are built locally and loaded with `kind load docker-image`, and are tagged with the git SHA rather than `latest`.
 - Radar is connected to the cluster. Use the Radar MCP from Claude Code while building and operating (`radar-cloud` MCP server). Note significant Radar findings in the PR description, because that's demo evidence.
+- **Argo CD deploys `main`** (Application `confy`). After merging, run `make release`, then confirm with Radar `wait_for` + `issues`. Log every Radar use (investigations, Checks before/after) in `deploy/radar/README.md`. The Radar track checklist is SPEC.md §8a.
 
 ## 6. Git, PRs, and Gitar (track: Never Merge Broken)
 
@@ -189,8 +190,9 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm build   # same as CI
 make help                    # list all targets
 make up                      # kind cluster + secrets from .env + build/load images + deploy
 make status | make port-forward | make logs-<api|worker|web>
-make argocd                  # Argo CD Application "confy" syncs deploy/k8s/base from this repo (REVISION=<branch>, TAG=<sha>)
-make break-worker / make fix-worker   # demo chaos toggle (worker OOMKilled)
+make argocd                  # Argo CD Application "confy" syncs deploy/k8s/base from main (REVISION=<branch>, TAG=<sha>)
+make release                 # on a clean main: build images for origin/main, point Argo CD at them, wait for rollout
+make break-worker / make fix-worker   # demo: OOMKill the live worker / Argo CD sync back to git (real fix = merge the fix PR)
 make destroy                 # delete the kind cluster
 ```
 

@@ -7,4 +7,5 @@ resources:
   - api.yaml
   - worker.yaml
   - web.yaml
+  - pdb.yaml
 # IMAGE_TAG placeholders are replaced with the git SHA by `make deploy`.

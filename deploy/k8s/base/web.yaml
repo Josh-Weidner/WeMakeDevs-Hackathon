@@ -18,6 +18,15 @@ spec:
         app.kubernetes.io/part-of: confy
         app.kubernetes.io/version: IMAGE_TAG
     spec:
+      # Radar Checks: none of the apps call the Kubernetes API.
+      automountServiceAccountToken: false
+      # Radar Checks: missingTopologySpread. ScheduleAnyway so a single-node cluster still schedules.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app.kubernetes.io/name: web }
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
