@@ -26,7 +26,10 @@ export function createPeopleService(deps: {
         const vector = await embedQuery(deps.ai, deps.logger, query.q, deps.metrics);
         const [found, me] = await Promise.all([
           deps.people.match({ excludeId: userId, text: query.q, vector, limit: query.limit }),
-          deps.people.getProfile(userId),
+          deps.people.getProfile(userId).catch((err: unknown) => {
+            deps.logger.warn({ err }, "requester profile lookup failed; generating openers without it");
+            return null;
+          }),
         ]);
         const openers = await generateOpeners(deps.ai, deps.logger, { me, request: query.q, matches: found }, deps.metrics);
         return { matches: found.map((m) => ({ ...m, opener: openers.get(m.id) ?? null })) };

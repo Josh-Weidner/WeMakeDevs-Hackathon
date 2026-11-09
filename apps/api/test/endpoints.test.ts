@@ -106,6 +106,25 @@ describe("rooms, people and contacts services", () => {
     expect((await service.match("demo-alex", { q: "x", limit: 3 })).matches[0]?.opener).toBeNull();
   });
 
+  it("still matches people when the requester profile lookup fails", async () => {
+    const found = { id: "a", display_name: "A B", role: "r", company_type: "c", bio: "b", stack: "s", interests: [], intro_prefs: "1:1" as const, score: 1, opener: null, linkedin_url: null };
+    const profileError = new Error("profile unavailable");
+    const people = { match: vi.fn().mockResolvedValue([found]), getProfile: vi.fn().mockRejectedValue(profileError) };
+    const chatJson = vi.fn().mockResolvedValue({ openers: [{ id: "a", opener: "Hello" }] });
+    const warn = vi.fn();
+    const service = createPeopleService({
+      people,
+      ai: { embed: async () => [vector], chatJson: chatJson as unknown as AiClient["chatJson"] },
+      logger: { warn } as unknown as typeof logger,
+    });
+
+    const out = await service.match("demo-alex", { q: "x", limit: 3 });
+
+    expect(out.matches[0]?.opener).toBe("Hello");
+    expect(JSON.parse(chatJson.mock.calls[0]?.[0].user).me).toBeNull();
+    expect(warn).toHaveBeenCalledWith({ err: profileError }, "requester profile lookup failed; generating openers without it");
+  });
+
   it("scopes contacts search to the requesting persona", async () => {
     const contacts = { search: vi.fn().mockResolvedValue([]) };
     await createContactsService({ contacts, ai: { embed: async () => [vector] }, logger }).search("demo-sam", { q: "bank", limit: 5 });
