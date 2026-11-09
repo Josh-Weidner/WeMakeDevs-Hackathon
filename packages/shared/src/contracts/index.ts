@@ -2,3 +2,4 @@
 // Browser-safe: only depends on zod. Never import server-only modules here.
 export * from "./common.js";
 export * from "./health.js";
+export * from "./me.js";

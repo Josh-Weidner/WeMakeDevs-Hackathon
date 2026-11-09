@@ -20,11 +20,13 @@ export function createEsClient(options: EsClientOptions): Client {
   });
 }
 
-/** Readiness probe helper: true when the cluster answers. */
-export async function isEsReachable(client: Client): Promise<boolean> {
+/**
+ * Readiness probe helper: true when the cluster answers.
+ * Fast-fails (no retries, short timeout) so k8s probes don't time out.
+ */
+export async function isEsReachable(client: Client, timeoutMs = 1_500): Promise<boolean> {
   try {
-    await client.info();
-    return true;
+    return await client.ping({}, { requestTimeout: timeoutMs, maxRetries: 0 });
   } catch {
     return false;
   }
