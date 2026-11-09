@@ -3,6 +3,7 @@
 import { ScheduleResponse } from "@confy/shared/contracts";
 import { CircleAlert, LoaderCircle, Sparkles } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
+import { ExamplePrompts } from "@/components/ExamplePrompts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,18 +94,7 @@ export function ScheduleBuilder() {
               </p>
             </div>
 
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">Or start from an example</legend>
-              <ul className="flex flex-wrap gap-2">
-                {EXAMPLES.map((example) => (
-                  <li key={example}>
-                    <Button type="button" variant="outline" size="sm" className="h-auto rounded-full py-1.5 whitespace-normal" onClick={() => setRequest(example)}>
-                      {example}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </fieldset>
+            <ExamplePrompts examples={EXAMPLES} onSelect={setRequest} />
 
             <div className="flex items-start gap-3 rounded-xl border p-4">
               <Checkbox

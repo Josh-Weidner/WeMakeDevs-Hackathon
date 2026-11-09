@@ -3,6 +3,7 @@
 import { ContactSearchResponse, type ContactResult } from "@confy/shared/contracts";
 import { CircleAlert, LoaderCircle, Search, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ExamplePrompts } from "@/components/ExamplePrompts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,18 +101,7 @@ export function ContactsFinder({ userId }: { userId: string }) {
               </p>
             </div>
 
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-medium">Or start from an example</legend>
-              <ul className="flex flex-wrap gap-2">
-                {EXAMPLES.map((example) => (
-                  <li key={example}>
-                    <Button type="button" variant="outline" size="sm" className="h-auto rounded-full py-1.5 whitespace-normal" onClick={() => setQuery(example)}>
-                      {example}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </fieldset>
+            <ExamplePrompts examples={EXAMPLES} onSelect={setQuery} />
           </CardContent>
 
           <CardFooter>
