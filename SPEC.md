@@ -86,7 +86,7 @@ Seed data: **synthetic** (decided). About 60 talks over 2 days, 8 rooms with mix
 | `speakers` | `name`, `bio`, `company`, `talk_ids`, `embedding` | |
 | `rooms` | `name`, `capacity` (int), `floor`, `is_quiet_room` (bool), `step_free_route` (text), `accessibility_notes`, `location` (geo_point, optional) | Small. Could be joined in the api instead of indexed |
 | `attendees` | `display_name`, `role`, `company_type` (e.g. "bank"), `bio`, `stack` (text), `interests` (keyword), `open_to_intros` (bool), `intro_prefs` (quiet/1:1), `visibility`, `embedding` | **Opt-in only. Synthetic seed data for the demo** |
-| `contacts` | `owner_id` (keyword, **mandatory filter**), `attendee_id`, `met_at_talk_id`, `met_at_talk_title`, `met_at_time`, `notes` (text), `embedding` | Private per user. Every query is filtered by `owner_id` |
+| `contacts` | `owner_id` (keyword, **mandatory filter**), `attendee_id`, `met_at_talk_id`, `met_at_talk_title`, `met_at_time`, `notes` (text), `linkedin_url` (optional, copied from the attendee), `embedding` | Private per user. Every query is filtered by `owner_id` |
 | `demand-events` | `talk_id`, `room_id`, `event_type` (search_hit/view/bookmark), `user_id`, `@timestamp` | Data stream. See §7 |
 | `intros` | `requester_id`, `target_id`, `slot`, `location` (quiet room), `status` | Planned 1:1s |
 | `clips` | `owner_id`, `kind` (connection/highlight), `duration_s`, `transcript` (text), `summary`, `talk_id` (if inside a talk), `entities` (name, role, company), `@timestamp`, `embedding` | Only created when the user taps Save. **No raw audio is stored** |

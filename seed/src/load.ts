@@ -28,8 +28,9 @@ export interface LoadResult {
 }
 
 /**
- * Bulk-index the seed into the aliases. Deterministic `_id`s make this idempotent: re-running
- * overwrites the same documents instead of duplicating them. `refresh: "wait_for"` is fine here
+ * Bulk-upsert the seed into the aliases. Deterministic `_id`s make this idempotent: re-running updates the
+ * same documents instead of duplicating them. It MERGES fields (`doc_as_upsert`) rather than replacing the
+ * document, so vectors the worker already wrote are never wiped by a re-seed. `refresh: "wait_for"` is fine here
  * (seed script), never on the request path. With a jobs repository it also enqueues one embedding
  * job per embeddable document (deterministic job ids, so re-running re-queues rather than duplicates).
  */
@@ -37,11 +38,11 @@ export async function loadSeed(client: EsClient, data: SeedData, jobs?: JobsRepo
   const results: LoadResult[] = [];
   for (const [collection, index] of Object.entries(COLLECTION_INDEX) as Array<[keyof SeedData, string]>) {
     const docs = data[collection] as Array<{ _id: string; _source: object }>;
-    const operations = docs.flatMap((d) => [{ index: { _index: index, _id: d._id } }, d._source]);
+    const operations = docs.flatMap((d) => [{ update: { _index: index, _id: d._id } }, { doc: d._source, doc_as_upsert: true }]);
     const res = await client.bulk({ operations, refresh: "wait_for" });
     if (res.errors) {
       const failed = res.items
-        .map((item) => item.index?.error)
+        .map((item) => item.update?.error)
         .filter(Boolean)
         .slice(0, 3)
         .map((e) => `${e?.type}: ${e?.reason}`);

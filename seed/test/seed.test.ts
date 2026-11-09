@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { generateSeed, DEMO_PERSONAS, type SeedData } from "../src/generate.js";
+import { LinkedInUrl } from "@confy/shared/contracts";
+import { generateSeed, linkedInSearchUrl, DEMO_PERSONAS, type SeedData } from "../src/generate.js";
 import { createRng } from "../src/rng.js";
 
 const data: SeedData = generateSeed();
@@ -123,5 +124,36 @@ describe("demo query: the person from the eBPF talk who worked at a bank", () =>
       expect(c._source.attendee_id).not.toBe(c._source.owner_id);
     }
     for (const p of DEMO_PERSONAS) expect(attendeeIds.has(p)).toBe(true);
+  });
+});
+
+describe("LinkedIn links (opt-in, fictional people)", () => {
+  const withLink = data.attendees.filter((a) => a._source.linkedin_url);
+
+  it("are valid LinkedIn URLs that search for a person rather than point at a profile", () => {
+    expect(withLink.length).toBeGreaterThan(40);
+    for (const a of withLink) {
+      const url = a._source.linkedin_url as string;
+      expect(LinkedInUrl.safeParse(url).success).toBe(true);
+      expect(url).toContain("/search/results/people/?keywords=");
+      expect(url).not.toContain("/in/"); // never an invented profile URL
+    }
+  });
+
+  it("are opt-in: some attendees have none, but every demo fixture shares one", () => {
+    expect(withLink.length).toBeLessThan(data.attendees.length);
+    for (const id of ["demo-alex", "att-marisol", "att-rafael", "att-aisha", "att-lars"]) {
+      expect(data.attendees.find((a) => a._id === id)?._source.linkedin_url).toBeTruthy();
+    }
+  });
+
+  it("are copied from the attendee onto their contact", () => {
+    for (const c of data.contacts) {
+      expect(c._source.linkedin_url).toBe(data.attendees.find((a) => a._id === c._source.attendee_id)?._source.linkedin_url);
+    }
+  });
+
+  it("encode the name and company safely", () => {
+    expect(linkedInSearchUrl("Zoë O'Neil", "Halden & Co")).toBe("https://www.linkedin.com/search/results/people/?keywords=Zo%C3%AB%20O'Neil%20Halden%20%26%20Co");
   });
 });
