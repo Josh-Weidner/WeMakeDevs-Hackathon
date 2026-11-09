@@ -130,9 +130,21 @@ describe("people repository", () => {
     const body = JSON.stringify(search.mock.calls[0]?.[0]);
     expect(body).toContain('"open_to_intros":true');
     expect(body).toContain('"ids":{"values":["demo-alex"]}');
-    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2 });
+    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2, opener: null });
     expect(out[0]).not.toHaveProperty("open_to_intros");
     expect(out[0]).not.toHaveProperty("visibility");
+  });
+});
+
+describe("people repository: requester profile", () => {
+  const attendee = { display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", bio: "b", stack: "k8s", interests: ["gitops"], open_to_intros: true, intro_prefs: "1:1", visibility: "public" };
+
+  it("returns only the profile fields the opener may use, null when unknown, and rethrows other errors", async () => {
+    const get = vi.fn().mockResolvedValueOnce({ _source: attendee }).mockRejectedValueOnce(notFound()).mockRejectedValueOnce(new Error("down"));
+    const repo = createPeopleRepository({ get } as unknown as EsClient);
+    await expect(repo.getProfile("demo-alex")).resolves.toEqual({ display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", stack: "k8s", interests: ["gitops"] });
+    await expect(repo.getProfile("nobody")).resolves.toBeNull();
+    await expect(repo.getProfile("x")).rejects.toThrow("down");
   });
 });
 

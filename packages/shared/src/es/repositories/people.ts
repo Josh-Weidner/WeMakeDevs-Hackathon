@@ -12,7 +12,12 @@ export interface PeopleMatchParams {
   limit: number;
 }
 
+/** What the opener generator may know about the requester: the same fields other attendees can see. */
+export type RequesterProfile = Pick<AttendeeDoc, "display_name" | "role" | "company_type" | "stack" | "interests">;
+
 export interface PeopleRepository {
+  /** The requesting attendee's own profile, or null for an unknown persona. */
+  getProfile(id: string): Promise<RequesterProfile | null>;
   /** Only attendees who opted in (`open_to_intros`) are ever returned. */
   match(params: PeopleMatchParams): Promise<PersonMatch[]>;
 }
@@ -21,6 +26,17 @@ const FIELDS = ["stack^3", "interests^2", "bio", "role"];
 
 export function createPeopleRepository(es: EsClient): PeopleRepository {
   return {
+    async getProfile(id) {
+      try {
+        const res = await es.get<unknown>({ index: INDEX.attendees, id, _source_excludes: ["embedding"] });
+        const a = AttendeeDoc.parse(res._source);
+        return { display_name: a.display_name, role: a.role, company_type: a.company_type, stack: a.stack, interests: a.interests };
+      } catch (err) {
+        if ((err as { statusCode?: number }).statusCode === 404) return null;
+        throw err;
+      }
+    },
+
     async match(p) {
       const body = buildHybridQuery({
         text: p.text,
@@ -43,6 +59,7 @@ export function createPeopleRepository(es: EsClient): PeopleRepository {
           interests: a.interests,
           intro_prefs: a.intro_prefs,
           score: h._score ?? null,
+          opener: null, // filled in by the api service
         });
       });
     },

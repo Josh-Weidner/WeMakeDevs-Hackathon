@@ -8,6 +8,7 @@ import {
   type PeopleRepository,
 } from "@confy/shared";
 import { embedQuery } from "./embed-query.js";
+import { generateOpeners } from "./opener.js";
 
 export interface PeopleService {
   match(userId: string, query: PeopleMatchQuery): Promise<PeopleMatchResponse>;
@@ -15,7 +16,7 @@ export interface PeopleService {
 
 export function createPeopleService(deps: {
   people: PeopleRepository;
-  ai: Pick<AiClient, "embed">;
+  ai: Pick<AiClient, "embed" | "chatJson">;
   logger: Logger;
   metrics?: Pick<ProductMetrics, "recordAiError">;
 }): PeopleService {
@@ -23,8 +24,12 @@ export function createPeopleService(deps: {
     async match(userId, query) {
       return withSpan("confy.people.match", {}, async () => {
         const vector = await embedQuery(deps.ai, deps.logger, query.q, deps.metrics);
-        const matches = await deps.people.match({ excludeId: userId, text: query.q, vector, limit: query.limit });
-        return { matches };
+        const [found, me] = await Promise.all([
+          deps.people.match({ excludeId: userId, text: query.q, vector, limit: query.limit }),
+          deps.people.getProfile(userId),
+        ]);
+        const openers = await generateOpeners(deps.ai, deps.logger, { me, request: query.q, matches: found }, deps.metrics);
+        return { matches: found.map((m) => ({ ...m, opener: openers.get(m.id) ?? null })) };
       });
     },
   };

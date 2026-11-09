@@ -61,7 +61,12 @@ export const PersonMatch = AttendeeDoc.pick({
   stack: true,
   interests: true,
   intro_prefs: true,
-}).extend({ id: z.string(), score: z.number().nullable() });
+}).extend({
+  id: z.string(),
+  score: z.number().nullable(),
+  /** A suggested conversation starter written for this pairing, or null if one couldn't be generated. */
+  opener: z.string().nullable(),
+});
 export type PersonMatch = z.infer<typeof PersonMatch>;
 
 export const PeopleMatchResponse = z.object({ matches: z.array(PersonMatch) });
