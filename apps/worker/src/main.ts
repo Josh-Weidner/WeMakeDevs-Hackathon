@@ -1,8 +1,7 @@
-import { createEsClient, createLogger, isEsReachable } from "@confy/shared";
+import { createAiClient, createEmbeddingStore, createEsClient, createJobsRepository, createLogger, isEsReachable } from "@confy/shared";
 import { loadConfig } from "./config.js";
-import { handlers } from "./handlers/index.js";
+import { createHandlers } from "./handlers/index.js";
 import { createHealthServer } from "./health-server.js";
-import { emptyJobSource } from "./jobs.js";
 import { createJobLoop } from "./loop.js";
 
 // Composition root for the worker.
@@ -10,8 +9,13 @@ const config = loadConfig();
 const logger = createLogger("confy-worker", config.LOG_LEVEL);
 const es = createEsClient({ url: config.ELASTICSEARCH_URL, apiKey: config.ELASTICSEARCH_API_KEY });
 
+const handlers = createHandlers({
+  store: createEmbeddingStore(es),
+  ai: createAiClient({ apiKey: config.OPENAI_API_KEY }),
+});
+
 const loop = createJobLoop({
-  source: emptyJobSource,
+  source: createJobsRepository(es),
   handlers,
   logger,
   minDelayMs: config.POLL_MIN_MS,

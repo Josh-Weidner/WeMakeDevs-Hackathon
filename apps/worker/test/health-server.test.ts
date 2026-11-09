@@ -2,7 +2,7 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { createHealthServer } from "../src/health-server.js";
 import { emptyJobSource } from "../src/jobs.js";
-import { handlers } from "../src/handlers/index.js";
+import { createHandlers } from "../src/handlers/index.js";
 import { loadConfig } from "../src/config.js";
 
 let server: ReturnType<typeof createHealthServer> | undefined;
@@ -51,7 +51,7 @@ describe("health server", () => {
 });
 
 describe("worker defaults", () => {
-  it("has an empty job source and no handlers yet", async () => {
+  it("has an empty job source and one embed handler per kind", async () => {
     expect(await emptyJobSource.claimNext()).toBeNull();
     await expect(
       emptyJobSource.complete({ id: "1", type: "t", payload: {}, attempts: 0 }),
@@ -59,7 +59,8 @@ describe("worker defaults", () => {
     await expect(
       emptyJobSource.fail({ id: "1", type: "t", payload: {}, attempts: 0 }, "e"),
     ).resolves.toBeUndefined();
-    expect(handlers).toEqual({});
+    const handlers = createHandlers({ store: { get: async () => null, setEmbedding: async () => undefined }, ai: { embed: async () => [] } });
+    expect(Object.keys(handlers).sort()).toEqual(["embed-attendee", "embed-contact", "embed-resource", "embed-speaker", "embed-talk"]);
   });
 
   it("loads config with defaults", () => {

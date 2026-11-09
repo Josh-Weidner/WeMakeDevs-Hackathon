@@ -1,0 +1,19 @@
+{
+  "name": "@confy/seed",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "tsx src/cli.ts",
+    "load": "tsx --env-file-if-exists=../.env.local --env-file-if-exists=../.env src/load-cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@confy/shared": "workspace:^",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

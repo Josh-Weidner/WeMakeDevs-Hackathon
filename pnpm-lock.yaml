@@ -138,6 +138,19 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
+  seed:
+    dependencies:
+      '@confy/shared':
+        specifier: workspace:^
+        version: link:../packages/shared
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
 packages:
 
   '@babel/code-frame@7.29.7':
