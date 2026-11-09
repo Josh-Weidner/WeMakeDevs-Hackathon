@@ -12,11 +12,31 @@ export interface ContactSearchParams {
   limit: number;
 }
 
+/**
+ * Every method takes `ownerId` and filters on it, including `get`: knowing another persona's contact id
+ * must never be enough to read their contact.
+ */
 export interface ContactsRepository {
   search(params: ContactSearchParams): Promise<ContactResult[]>;
+  /** The owner's contacts, most recently met first. */
+  list(ownerId: string, limit: number): Promise<ContactResult[]>;
+  /** One contact, or null when it doesn't exist OR belongs to someone else. */
+  get(ownerId: string, id: string): Promise<ContactResult | null>;
 }
 
 const FIELDS = ["notes", "met_at_talk_title^2", "contact_name", "role", "company", "company_type^2"];
+
+interface Hit {
+  _id?: string | undefined;
+  _score?: number | null | undefined;
+  _source?: unknown;
+}
+
+/** Strips `owner_id` (callers already know whose contacts these are) and attaches the id and score. */
+function toResult(hit: Hit): ContactResult {
+  const { owner_id: _owner, ...contact } = ContactDoc.parse(hit._source);
+  return { ...contact, id: hit._id as string, score: hit._score ?? null };
+}
 
 export function createContactsRepository(es: EsClient): ContactsRepository {
   return {
@@ -31,10 +51,29 @@ export function createContactsRepository(es: EsClient): ContactsRepository {
         limit: p.limit,
       });
       const res = await es.search<unknown>({ index: INDEX.contacts, ...body, _source: NO_VECTORS });
-      return res.hits.hits.map((h) => {
-        const { owner_id: _owner, ...contact } = ContactDoc.parse(h._source);
-        return { ...contact, id: h._id as string, score: h._score ?? null };
+      return res.hits.hits.map(toResult);
+    },
+
+    async list(ownerId, limit) {
+      const body = buildHybridQuery({ fields: FIELDS, filter: termFilters({ owner_id: ownerId }), limit });
+      const res = await es.search<unknown>({
+        index: INDEX.contacts,
+        ...body,
+        sort: [{ met_at_time: "desc" as const }],
+        _source: NO_VECTORS,
       });
+      return res.hits.hits.map(toResult);
+    },
+
+    async get(ownerId, id) {
+      const res = await es.search<unknown>({
+        index: INDEX.contacts,
+        size: 1,
+        query: { bool: { filter: [{ ids: { values: [id] } }, ...termFilters({ owner_id: ownerId })] } },
+        _source: NO_VECTORS,
+      });
+      const hit = res.hits.hits[0];
+      return hit ? toResult(hit) : null;
     },
   };
 }

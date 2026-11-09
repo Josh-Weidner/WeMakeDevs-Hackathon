@@ -82,8 +82,16 @@ export const ContactSearchQuery = z.object({
 });
 export type ContactSearchQuery = z.infer<typeof ContactSearchQuery>;
 
+/** Browse your own contacts, most recently met first. */
+export const ContactListQuery = z.object({ limit: limit(10, 50) });
+export type ContactListQuery = z.infer<typeof ContactListQuery>;
+
 export const ContactResult = ContactDoc.omit({ owner_id: true }).extend({ id: z.string(), score: z.number().nullable() });
 export type ContactResult = z.infer<typeof ContactResult>;
 
 export const ContactSearchResponse = z.object({ results: z.array(ContactResult) });
 export type ContactSearchResponse = z.infer<typeof ContactSearchResponse>;
+
+/** A short LinkedIn-style note to send after meeting someone, written from the contact's saved details. */
+export const ContactFollowUpResponse = z.object({ draft: z.string() });
+export type ContactFollowUpResponse = z.infer<typeof ContactFollowUpResponse>;
