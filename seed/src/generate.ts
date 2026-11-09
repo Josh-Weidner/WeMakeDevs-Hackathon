@@ -170,6 +170,13 @@ interface Person {
   doc: AttendeeDoc;
 }
 
+/**
+ * The people are fictional, so we never invent a profile URL (it could belong to a real stranger). The demo
+ * link is a LinkedIn people SEARCH for their name and company, which targets no specific real person.
+ */
+export const linkedInSearchUrl = (name: string, company: string) =>
+  `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${name} ${company}`)}`;
+
 const person = (
   id: string,
   display_name: string,
@@ -180,6 +187,7 @@ const person = (
   interests: string[],
   open_to_intros = true,
   intro_prefs: "quiet" | "1:1" = "1:1",
+  shareLinkedIn = true,
 ): Person => ({
   id,
   company,
@@ -193,6 +201,7 @@ const person = (
     open_to_intros,
     intro_prefs,
     visibility: "public",
+    ...(shareLinkedIn ? { linkedin_url: linkedInSearchUrl(display_name, company) } : {}),
   },
 });
 
@@ -237,6 +246,7 @@ function buildAttendees(rng: Rng): Person[] {
         interests,
         rng.chance(0.8),
         rng.chance(0.5) ? "quiet" : "1:1",
+        rng.chance(0.85), // opt-in: some attendees choose not to share a LinkedIn link
       ),
     });
   }
@@ -266,6 +276,7 @@ function buildContacts(rng: Rng, people: Person[], talks: SeedData["talks"]): Ar
         met_at_talk_title: talk._source.title,
         met_at_time: iso(Date.parse(talk._source.start) + 50 * 60_000),
         notes,
+        ...(a.doc.linkedin_url ? { linkedin_url: a.doc.linkedin_url } : {}),
       }),
     };
   };

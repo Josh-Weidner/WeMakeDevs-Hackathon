@@ -15,8 +15,8 @@ export interface NavItem {
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/schedule", label: "Schedule", description: "Build a clash-free day from plain language", icon: CalendarDays, ready: true },
-  { href: "/people", label: "People", description: "Find people to meet, with a suggested opener", icon: Users, ready: false },
-  { href: "/contacts", label: "Contacts", description: "Recall who you met, by what you remember", icon: Contact, ready: false },
+  { href: "/people", label: "People", description: "Find people to meet, with a suggested opener", icon: Users, ready: true },
+  { href: "/contacts", label: "Contacts", description: "Recall who you met, by what you remember", icon: Contact, ready: true },
   { href: "/rooms", label: "Rooms", description: "Locations, step-free routes and quiet spaces", icon: DoorOpen, ready: true },
 ];
 

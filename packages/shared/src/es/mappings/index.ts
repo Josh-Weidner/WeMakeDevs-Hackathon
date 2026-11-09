@@ -63,6 +63,7 @@ export const MAPPINGS: Record<Exclude<IndexAlias, typeof INDEX.demandEvents>, Ma
     open_to_intros: bool(),
     intro_prefs: keyword(), // quiet | 1:1
     visibility: keyword(),
+    linkedin_url: storedOnlyKeyword(),
     embedding: embedding(),
   }),
 
@@ -82,6 +83,7 @@ export const MAPPINGS: Record<Exclude<IndexAlias, typeof INDEX.demandEvents>, Ma
     met_at_talk_title: textWithKeyword(),
     met_at_time: date(),
     notes: text(),
+    linkedin_url: storedOnlyKeyword(),
     embedding: embedding(),
   }),
 

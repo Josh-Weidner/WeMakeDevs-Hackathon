@@ -130,14 +130,71 @@ describe("people repository", () => {
     const body = JSON.stringify(search.mock.calls[0]?.[0]);
     expect(body).toContain('"open_to_intros":true');
     expect(body).toContain('"ids":{"values":["demo-alex"]}');
-    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2 });
+    expect(out[0]).toMatchObject({ id: "att-rafael", display_name: "Rafael Costa", score: 2, opener: null, linkedin_url: null });
     expect(out[0]).not.toHaveProperty("open_to_intros");
     expect(out[0]).not.toHaveProperty("visibility");
   });
 });
 
+describe("people repository: opt-in LinkedIn link", () => {
+  const base = { display_name: "Rafael Costa", role: "SRE", company_type: "telco", bio: "b", stack: "bare metal", interests: ["a"], open_to_intros: true, intro_prefs: "1:1", visibility: "public" };
+
+  it("exposes the link only for attendees who shared one", async () => {
+    const shared = "https://www.linkedin.com/search/results/people/?keywords=Rafael%20Costa";
+    const search = searchOf([
+      { _id: "a", _score: 1, _source: { ...base, linkedin_url: shared } },
+      { _id: "b", _score: 1, _source: base },
+    ]);
+    const out = await createPeopleRepository({ search } as unknown as EsClient).match({ excludeId: "x", text: "t", limit: 3 });
+    expect(out.map((m) => m.linkedin_url)).toEqual([shared, null]);
+  });
+
+  it("refuses to return a stored link that is not on linkedin.com", async () => {
+    const search = searchOf([{ _id: "a", _score: 1, _source: { ...base, linkedin_url: "https://evil.example/in/x" } }]);
+    await expect(createPeopleRepository({ search } as unknown as EsClient).match({ excludeId: "x", text: "t", limit: 3 })).rejects.toThrow();
+  });
+});
+
+describe("people repository: requester profile", () => {
+  const attendee = { display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", bio: "b", stack: "k8s", interests: ["gitops"], open_to_intros: true, intro_prefs: "1:1", visibility: "public" };
+
+  it("returns only the profile fields the opener may use, null when unknown, and rethrows other errors", async () => {
+    const get = vi.fn().mockResolvedValueOnce({ _source: attendee }).mockRejectedValueOnce(notFound()).mockRejectedValueOnce(new Error("down"));
+    const repo = createPeopleRepository({ get } as unknown as EsClient);
+    await expect(repo.getProfile("demo-alex")).resolves.toEqual({ display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", stack: "k8s", interests: ["gitops"] });
+    await expect(repo.getProfile("nobody")).resolves.toBeNull();
+    await expect(repo.getProfile("x")).rejects.toThrow("down");
+  });
+});
+
 describe("contacts repository", () => {
   const contact = { owner_id: "demo-alex", attendee_id: "a", contact_name: "Bo", role: "SRE", company: "Co", company_type: "bank", met_at_time: "2026-11-10T10:30:00-07:00", notes: "n" };
+
+  it("lists only the owner's contacts, newest first, without vectors or owner_id", async () => {
+    const search = searchOf([{ _id: "contact-alex-1", _score: null, _source: contact }]);
+    const out = await createContactsRepository({ search } as unknown as EsClient).list("demo-alex", 10);
+
+    const req = search.mock.calls[0]?.[0];
+    expect(JSON.stringify(req.query)).toContain('"owner_id":"demo-alex"');
+    expect(req.sort).toEqual([{ met_at_time: "desc" }]);
+    expect(req.size).toBe(10);
+    expect(req._source).toEqual({ excludes: ["embedding"] });
+    expect(out[0]).toMatchObject({ id: "contact-alex-1", contact_name: "Bo" });
+    expect(out[0]).not.toHaveProperty("owner_id");
+  });
+
+  it("gets one contact by id AND owner, so another persona's id finds nothing", async () => {
+    const search = vi.fn().mockResolvedValueOnce({ hits: { hits: [{ _id: "contact-alex-1", _score: 1, _source: contact }] } }).mockResolvedValueOnce({ hits: { hits: [] } });
+    const repo = createContactsRepository({ search } as unknown as EsClient);
+
+    await expect(repo.get("demo-alex", "contact-alex-1")).resolves.toMatchObject({ id: "contact-alex-1" });
+    const filter = search.mock.calls[0]?.[0].query.bool.filter;
+    expect(filter).toContainEqual({ ids: { values: ["contact-alex-1"] } });
+    expect(filter).toContainEqual({ term: { owner_id: "demo-alex" } });
+
+    await expect(repo.get("demo-sam", "contact-alex-1")).resolves.toBeNull();
+    expect(search.mock.calls[1]?.[0].query.bool.filter).toContainEqual({ term: { owner_id: "demo-sam" } });
+  });
 
   it("always filters on owner_id and never returns it", async () => {
     const search = searchOf([{ _id: "contact-alex-1", _score: 3, _source: contact }]);

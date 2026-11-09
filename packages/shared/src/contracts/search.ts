@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AttendeeDoc, ContactDoc, Level, RoomDoc, TalkDoc } from "./documents.js";
+import { AttendeeDoc, ContactDoc, Level, LinkedInUrl, RoomDoc, TalkDoc } from "./documents.js";
 
 /** Query-string booleans arrive as "true"/"false" strings. */
 const queryBool = z
@@ -61,7 +61,14 @@ export const PersonMatch = AttendeeDoc.pick({
   stack: true,
   interests: true,
   intro_prefs: true,
-}).extend({ id: z.string(), score: z.number().nullable() });
+}).extend({
+  id: z.string(),
+  score: z.number().nullable(),
+  /** A suggested conversation starter written for this pairing, or null if one couldn't be generated. */
+  opener: z.string().nullable(),
+  /** Present only if this attendee opted in to sharing a LinkedIn link. */
+  linkedin_url: LinkedInUrl.nullable(),
+});
 export type PersonMatch = z.infer<typeof PersonMatch>;
 
 export const PeopleMatchResponse = z.object({ matches: z.array(PersonMatch) });
@@ -75,8 +82,16 @@ export const ContactSearchQuery = z.object({
 });
 export type ContactSearchQuery = z.infer<typeof ContactSearchQuery>;
 
+/** Browse your own contacts, most recently met first. */
+export const ContactListQuery = z.object({ limit: limit(10, 50) });
+export type ContactListQuery = z.infer<typeof ContactListQuery>;
+
 export const ContactResult = ContactDoc.omit({ owner_id: true }).extend({ id: z.string(), score: z.number().nullable() });
 export type ContactResult = z.infer<typeof ContactResult>;
 
 export const ContactSearchResponse = z.object({ results: z.array(ContactResult) });
 export type ContactSearchResponse = z.infer<typeof ContactSearchResponse>;
+
+/** A short LinkedIn-style note to send after meeting someone, written from the contact's saved details. */
+export const ContactFollowUpResponse = z.object({ draft: z.string() });
+export type ContactFollowUpResponse = z.infer<typeof ContactFollowUpResponse>;

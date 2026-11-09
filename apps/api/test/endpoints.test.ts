@@ -1,4 +1,4 @@
-import { createLogger, type TalkResult } from "@confy/shared";
+import { createLogger, type AiClient, type TalkResult } from "@confy/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { NotFoundError } from "../src/errors.js";
@@ -87,15 +87,48 @@ describe("rooms, people and contacts services", () => {
     await expect(service.get("x")).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("matches people excluding the requester", async () => {
-    const people = { match: vi.fn().mockResolvedValue([]) };
-    await createPeopleService({ people, ai: { embed: async () => [vector] }, logger }).match("demo-alex", { q: "bare metal", limit: 3 });
+  it("matches people excluding the requester, and attaches generated openers", async () => {
+    const found = { id: "att-rafael", display_name: "Rafael Costa", role: "SRE", company_type: "telco", bio: "b", stack: "bare metal", interests: ["a"], intro_prefs: "1:1" as const, score: 2, opener: null, linkedin_url: null };
+    const people = { match: vi.fn().mockResolvedValue([found]), getProfile: vi.fn().mockResolvedValue({ display_name: "Alex", role: "SRE", company_type: "startup", stack: "k8s", interests: [] }) };
+    const chatJson = vi.fn().mockResolvedValue({ openers: [{ id: "att-rafael", opener: "Hi Rafael, I also run bare metal." }] });
+    const service = createPeopleService({ people, ai: { embed: async () => [vector], chatJson: chatJson as unknown as AiClient["chatJson"] }, logger });
+
+    const out = await service.match("demo-alex", { q: "bare metal", limit: 3 });
     expect(people.match).toHaveBeenCalledWith({ excludeId: "demo-alex", text: "bare metal", vector, limit: 3 });
+    expect(people.getProfile).toHaveBeenCalledWith("demo-alex");
+    expect(out.matches[0]?.opener).toBe("Hi Rafael, I also run bare metal.");
+  });
+
+  it("still returns matches, with no openers, when generation fails", async () => {
+    const found = { id: "a", display_name: "A B", role: "r", company_type: "c", bio: "b", stack: "s", interests: [], intro_prefs: "1:1" as const, score: 1, opener: null, linkedin_url: null };
+    const people = { match: vi.fn().mockResolvedValue([found]), getProfile: vi.fn().mockResolvedValue(null) };
+    const service = createPeopleService({ people, ai: { embed: async () => [vector], chatJson: vi.fn().mockRejectedValue(new Error("x")) as unknown as AiClient["chatJson"] }, logger });
+    expect((await service.match("demo-alex", { q: "x", limit: 3 })).matches[0]?.opener).toBeNull();
+  });
+
+  it("still matches people when the requester profile lookup fails", async () => {
+    const found = { id: "a", display_name: "A B", role: "r", company_type: "c", bio: "b", stack: "s", interests: [], intro_prefs: "1:1" as const, score: 1, opener: null, linkedin_url: null };
+    const profileError = new Error("profile unavailable");
+    const people = { match: vi.fn().mockResolvedValue([found]), getProfile: vi.fn().mockRejectedValue(profileError) };
+    const chatJson = vi.fn().mockResolvedValue({ openers: [{ id: "a", opener: "Hello" }] });
+    const warn = vi.fn();
+    const service = createPeopleService({
+      people,
+      ai: { embed: async () => [vector], chatJson: chatJson as unknown as AiClient["chatJson"] },
+      logger: { warn } as unknown as typeof logger,
+    });
+
+    const out = await service.match("demo-alex", { q: "x", limit: 3 });
+
+    expect(out.matches[0]?.opener).toBe("Hello");
+    expect(JSON.parse(chatJson.mock.calls[0]?.[0].user).me).toBeNull();
+    expect(warn).toHaveBeenCalledWith({ err: profileError }, "requester profile lookup failed; generating openers without it");
   });
 
   it("scopes contacts search to the requesting persona", async () => {
-    const contacts = { search: vi.fn().mockResolvedValue([]) };
-    await createContactsService({ contacts, ai: { embed: async () => [vector] }, logger }).search("demo-sam", { q: "bank", limit: 5 });
+    const contacts = { search: vi.fn().mockResolvedValue([]), list: vi.fn(), get: vi.fn() };
+    const ai = { embed: async () => [vector], chatJson: vi.fn() as unknown as AiClient["chatJson"] };
+    await createContactsService({ contacts, people: { getProfile: vi.fn() }, ai, logger }).search("demo-sam", { q: "bank", limit: 5 });
     expect(contacts.search).toHaveBeenCalledWith({ ownerId: "demo-sam", text: "bank", vector, limit: 5 });
   });
 });
@@ -147,7 +180,7 @@ describe("routes", () => {
 
   it("GET /v1/contacts/search is scoped to the persona and defaults to demo-alex", async () => {
     const search = vi.fn().mockResolvedValue({ results: [] });
-    app = await buildServer(fakeContainer(true, { contacts: { search } }));
+    app = await buildServer(fakeContainer(true, { contacts: { search, list: vi.fn(), followUp: vi.fn() } }));
     await app.inject({ method: "GET", url: "/v1/contacts/search?q=bank" });
     expect(search).toHaveBeenCalledWith("demo-alex", { q: "bank", limit: 5 });
     await app.inject({ method: "GET", url: "/v1/contacts/search?q=bank", headers: { "x-user-id": "demo-priya" } });
