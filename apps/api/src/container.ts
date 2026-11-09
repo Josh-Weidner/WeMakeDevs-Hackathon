@@ -16,6 +16,7 @@ import { createContactsService, type ContactsService } from "./services/contacts
 import { createDemandService, type DemandService } from "./services/demand.js";
 import { createHealthService, type HealthService } from "./services/health.js";
 import { createPeopleService, type PeopleService } from "./services/people.js";
+import { createScheduleService, type ScheduleService } from "./services/schedule.js";
 import { createRoomsService, type RoomsService } from "./services/rooms.js";
 import { createTalksService, type TalksService } from "./services/talks.js";
 
@@ -29,6 +30,7 @@ export interface Container {
     demand: DemandService;
     talks: TalksService;
     rooms: RoomsService;
+    schedule: ScheduleService;
     people: PeopleService;
     contacts: ContactsService;
   };
@@ -43,7 +45,7 @@ export function createContainer(config: ApiConfig): Container {
   const logger = createLogger("confy-api", config.LOG_LEVEL);
   const es = createEsClient({ url: config.ELASTICSEARCH_URL, apiKey: config.ELASTICSEARCH_API_KEY });
 
-  const ai = createAiClient({ apiKey: config.OPENAI_API_KEY });
+  const ai = createAiClient({ apiKey: config.OPENAI_API_KEY, ...(config.OPENAI_CHAT_MODEL ? { chatModel: config.OPENAI_CHAT_MODEL } : {}) });
 
   const metrics = createProductMetrics("confy-api");
   const talksRepo = createTalksRepository(es);
@@ -68,6 +70,7 @@ export function createContainer(config: ApiConfig): Container {
       demand,
       talks: createTalksService({ talks: talksRepo, ai, logger, demand, metrics }),
       rooms: createRoomsService({ rooms: roomsRepo }),
+      schedule: createScheduleService({ talks: talksRepo, rooms: roomsRepo, demand, ai, logger, metrics }),
       people: createPeopleService({ people: createPeopleRepository(es), ai, logger, metrics }),
       contacts: createContactsService({ contacts: createContactsRepository(es), ai, logger, metrics }),
     },

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PersonaSwitcher } from "../features/persona/PersonaSwitcher";
+import { PersonaProvider } from "../lib/persona/PersonaProvider";
 import { RumInit } from "../lib/telemetry/RumInit";
 import "./globals.css";
 
@@ -24,19 +26,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <a className="skip-link" href="#main">
           Skip to main content
         </a>
-        <header className="site-header">
-          <p className="brand">Confy</p>
-          <nav aria-label="Primary">
-            <ul>
-              <li>
-                <Link href="/">Home</Link>
-              </li>
-            </ul>
-          </nav>
-        </header>
-        <main id="main" tabIndex={-1}>
-          {children}
-        </main>
+        <PersonaProvider>
+          <header className="site-header">
+            <p className="brand">Confy</p>
+            <nav aria-label="Primary">
+              <ul>
+                <li>
+                  <Link href="/">Schedule</Link>
+                </li>
+              </ul>
+            </nav>
+            <PersonaSwitcher />
+          </header>
+          <main id="main" tabIndex={-1}>
+            {children}
+          </main>
+        </PersonaProvider>
         {/* Polite live region for async announcements (warnings, "clip saved", result counts). */}
         <div id="announcer" aria-live="polite" aria-atomic="true" className="visually-hidden" />
       </body>
