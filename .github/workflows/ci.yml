@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint (incl. jsx-a11y + layering rules)
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  docker:
+    name: docker build (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        app: [api, worker, web]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f apps/${{ matrix.app }}/Dockerfile -t confy-${{ matrix.app }}:ci .
