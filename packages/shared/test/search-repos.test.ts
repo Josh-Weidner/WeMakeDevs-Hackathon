@@ -158,10 +158,10 @@ describe("people repository: opt-in LinkedIn link", () => {
 describe("people repository: requester profile", () => {
   const attendee = { display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", bio: "b", stack: "k8s", interests: ["gitops"], open_to_intros: true, intro_prefs: "1:1", visibility: "public" };
 
-  it("returns only the profile fields the opener may use, null when unknown, and rethrows other errors", async () => {
+  it("returns only the requester's own profile fields, null when unknown, and rethrows other errors", async () => {
     const get = vi.fn().mockResolvedValueOnce({ _source: attendee }).mockRejectedValueOnce(notFound()).mockRejectedValueOnce(new Error("down"));
     const repo = createPeopleRepository({ get } as unknown as EsClient);
-    await expect(repo.getProfile("demo-alex")).resolves.toEqual({ display_name: "Alex Rivera", role: "Platform Engineer", company_type: "startup", stack: "k8s", interests: ["gitops"] });
+    await expect(repo.getProfile("demo-alex")).resolves.toEqual({ display_name: "Alex Rivera", role: "Platform Engineer", bio: attendee.bio, company_type: "startup", stack: "k8s", interests: ["gitops"] });
     await expect(repo.getProfile("nobody")).resolves.toBeNull();
     await expect(repo.getProfile("x")).rejects.toThrow("down");
   });

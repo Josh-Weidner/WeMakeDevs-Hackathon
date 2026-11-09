@@ -6,7 +6,7 @@ import { createMeService } from "../src/services/me.js";
 import { fakeContainer } from "./helpers.js";
 
 const logger = createLogger("test", "silent");
-const profile = { display_name: "Alex Rivera", role: "Platform engineer", company_type: "startup", stack: "k8s", interests: [] };
+const profile = { display_name: "Alex Rivera", role: "Platform engineer", bio: "b", company_type: "startup", stack: "k8s", interests: [] };
 const URL = "https://www.linkedin.com/in/alex-rivera-demo";
 
 let app: FastifyInstance | undefined;

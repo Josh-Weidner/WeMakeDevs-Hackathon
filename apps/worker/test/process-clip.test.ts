@@ -1,11 +1,13 @@
 import { MAX_JOB_ATTEMPTS, type AiClient, type TalkResult } from "@confy/shared";
 import { describe, expect, it, vi } from "vitest";
-import { createProcessClipHandler, defaultLinkedInNote, fallbackAnalysis, type ProcessClipDeps } from "../src/handlers/process-clip.js";
+import { createProcessClipHandler, defaultLinkedInNote, fallbackAnalysis, isAttendee, systemPrompt, type ProcessClipDeps } from "../src/handlers/process-clip.js";
 import type { Job } from "../src/jobs.js";
 
 const CLIP_ID = "6f1c2c4e-8a3b-4d5e-9f10-1a2b3c4d5e6f";
 const NOW = new Date("2026-11-10T15:00:00-07:00");
 const talk = { id: "talk-014", title: "Multi-Tenancy 101", score: null } as TalkResult;
+
+const alex = { display_name: "Alex Rivera", role: "Platform Engineer", bio: "Platform Engineer at Quillstack, a startup organization.", company_type: "startup", stack: "EKS", interests: [] };
 
 const job = (payload: Record<string, unknown> = {}, attempts = 1): Job => ({
   id: `clip-${CLIP_ID}`,
@@ -29,6 +31,7 @@ function setup(analysis: unknown) {
     highlights: { save: vi.fn().mockResolvedValue(undefined) },
     resources: { search: vi.fn().mockResolvedValue([{ id: "res-001", title: "Kubernetes multi-tenancy docs", type: "doc", url: "https://kubernetes.io/docs/concepts/security/multi-tenancy/", tags: ["k8s"], score: 1 }]) },
     talks: { search: vi.fn().mockResolvedValue([talk]), get: vi.fn().mockResolvedValue(talk) },
+    people: { getProfile: vi.fn().mockResolvedValue(alex) },
     metrics: { recordAiError: vi.fn() },
     now: () => NOW,
   } satisfies ProcessClipDeps;
@@ -160,5 +163,77 @@ describe("process-clip handler", () => {
 
   it("truncates long transcripts in the fallback summary", () => {
     expect(fallbackAnalysis("x".repeat(500)).summary).toHaveLength(280);
+  });
+});
+
+describe("process-clip knows who saved the clip", () => {
+  const transcript = "Hi, I'm Alex Rivera, platform engineer at Quillstack. Oh nice, I'm Dana Ortiz, I lead the platform team at Acme Bank.";
+  const self = { ...connection, person: { name: "Alex Rivera", role: "Platform engineer", company: "Quillstack" }, linkedin_note: "Hi Alex!" };
+
+  function withReplies(...replies: unknown[]) {
+    const { deps } = setup(connection);
+    const chatJson = vi.fn(async ({ schema }: { schema: { parse: (v: unknown) => unknown } }) => schema.parse(replies.shift()));
+    const d = { ...deps, ai: { ...deps.ai, chatJson: chatJson as unknown as AiClient["chatJson"] } };
+    return { deps: d, chatJson, handler: createProcessClipHandler(d) };
+  }
+
+  it("tells the model who the attendee is, so their own intro isn't the person met", async () => {
+    const { deps, chatJson, handler } = withReplies(connection);
+    await handler(job({ transcript }));
+    const system = (chatJson.mock.calls[0]![0] as unknown as { system: string }).system;
+    expect(system).toContain("Alex Rivera (Platform Engineer). About them: Platform Engineer at Quillstack");
+    expect(system).toContain('"person" is always the OTHER speaker');
+    expect(deps.people.getProfile).toHaveBeenCalledWith("demo-alex");
+    expect(deps.contacts.save.mock.calls[0]![1]).toMatchObject({ contact_name: "Dana Ortiz", role: "Platform lead", company: "Acme Bank" });
+  });
+
+  it("asks again when the model returns the attendee, and saves the other speaker", async () => {
+    const { deps, chatJson, handler } = withReplies(self, connection);
+    await handler(job({ transcript }));
+    expect(chatJson).toHaveBeenCalledTimes(2);
+    expect((chatJson.mock.calls[1]![0] as unknown as { system: string }).system).toContain("named the attendee (Alex Rivera) as the person met");
+    expect(deps.contacts.save.mock.calls[0]![1]).toMatchObject({ contact_name: "Dana Ortiz" });
+  });
+
+  it("never saves the attendee as their own contact, even if the model insists", async () => {
+    const { deps, handler } = withReplies(self, self);
+    await handler(job({ transcript }));
+    expect(deps.contacts.save).not.toHaveBeenCalled();
+    expect(deps.highlights.save).toHaveBeenCalled();
+    expect(deps.clips.save.mock.calls[0]![1]).toMatchObject({ kind: "highlight" });
+  });
+
+  it("falls back to the persona list when the profile can't be read", async () => {
+    const { deps, chatJson, handler } = withReplies(connection);
+    deps.people.getProfile.mockRejectedValue(new Error("es down"));
+    await handler(job({ transcript }));
+    expect((chatJson.mock.calls[0]![0] as unknown as { system: string }).system).toContain("Alex Rivera (Platform engineer, new to multi-tenancy)");
+  });
+
+  it("prompts without an attendee for an unknown user", () => {
+    expect(systemPrompt(null)).not.toContain("The attendee who saved this clip");
+  });
+});
+
+describe("isAttendee", () => {
+  const me = { name: "Alex Rivera", role: "Platform Engineer", company: "Quillstack" };
+  it("matches the attendee's full name, ignoring case and accents", () => {
+    expect(isAttendee({ name: "alex  rivera", role: "", company: "" }, me)).toBe(true);
+    expect(isAttendee({ name: "Álex Rivera", role: "", company: "" }, me)).toBe(true);
+  });
+  it("matches a first name only together with the attendee's own role or company", () => {
+    expect(isAttendee({ name: "Alex", role: "platform engineer", company: "" }, me)).toBe(true);
+    expect(isAttendee({ name: "Alex", role: "", company: "Quillstack" }, me)).toBe(true);
+    expect(isAttendee({ name: "Alex", role: "Designer", company: "Acme" }, me)).toBe(false);
+  });
+  it("matches a company listed in the attendee's bio", () => {
+    const attendee = { name: "Alex Rivera", role: "Platform Engineer", company: "", about: "Platform Engineer at Quillstack" };
+    expect(isAttendee({ name: "Alex", role: "", company: "Quillstack" }, attendee)).toBe(true);
+    expect(isAttendee({ name: "Alex", role: "", company: "Acme" }, attendee)).toBe(false);
+  });
+  it("doesn't match other people or a missing attendee", () => {
+    expect(isAttendee({ name: "Dana Ortiz", role: "Platform Engineer", company: "Quillstack" }, me)).toBe(false);
+    expect(isAttendee({ name: "Alex Rivera", role: "", company: "" }, null)).toBe(false);
+    expect(isAttendee({ name: "", role: "", company: "" }, me)).toBe(false);
   });
 });
