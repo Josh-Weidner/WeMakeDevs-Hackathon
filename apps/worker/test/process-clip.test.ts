@@ -226,6 +226,11 @@ describe("isAttendee", () => {
     expect(isAttendee({ name: "Alex", role: "", company: "Quillstack" }, me)).toBe(true);
     expect(isAttendee({ name: "Alex", role: "Designer", company: "Acme" }, me)).toBe(false);
   });
+  it("matches a company listed in the attendee's bio", () => {
+    const attendee = { name: "Alex Rivera", role: "Platform Engineer", company: "", about: "Platform Engineer at Quillstack" };
+    expect(isAttendee({ name: "Alex", role: "", company: "Quillstack" }, attendee)).toBe(true);
+    expect(isAttendee({ name: "Alex", role: "", company: "Acme" }, attendee)).toBe(false);
+  });
   it("doesn't match other people or a missing attendee", () => {
     expect(isAttendee({ name: "Dana Ortiz", role: "Platform Engineer", company: "Quillstack" }, me)).toBe(false);
     expect(isAttendee({ name: "Alex Rivera", role: "", company: "" }, null)).toBe(false);

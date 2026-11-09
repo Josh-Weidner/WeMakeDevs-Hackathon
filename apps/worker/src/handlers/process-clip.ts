@@ -106,7 +106,10 @@ export function isAttendee(person: { name: string; role: string; company: string
   if (name !== mine.split(" ")[0]) return false;
   const company = normalize(person.company);
   const role = normalize(person.role);
-  return (company !== "" && company === normalize(me.company)) || (role !== "" && normalize(me.role).includes(role));
+  const myCompany = normalize(me.company);
+  const about = normalize(me.about ?? "");
+  const companyMatch = company !== "" && (company === myCompany || ` ${about} `.includes(` ${company} `));
+  return companyMatch || (role !== "" && normalize(me.role).includes(role));
 }
 
 const RESOURCE_LIMIT = 3;
