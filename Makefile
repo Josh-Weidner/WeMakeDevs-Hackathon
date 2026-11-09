@@ -52,7 +52,15 @@ release: ## Build images for origin/main and roll them out through Argo CD (run 
 	@test "$$(git rev-parse HEAD)" = "$$(git rev-parse origin/main)" || { echo "release: check out main at origin/main first"; exit 1; }
 	@test -z "$$(git status --porcelain)" || { echo "release: working tree is dirty"; exit 1; }
 	$(MAKE) images argocd REVISION=main TAG=$(TAG)
-	kubectl -n $(NS) rollout status deploy/api deploy/web deploy/worker --timeout=180s
+	@# Argo CD applies the new tag asynchronously. Wait until every Deployment's spec has it,
+	@# or `rollout status` would just report the previous, already-finished rollout.
+	@echo "release: waiting for Argo CD to apply $(TAG)..."; \
+	for i in $$(seq 1 60); do \
+	  imgs=$$(kubectl -n $(NS) get deploy $(APPS) -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'); \
+	  stale=$$(for img in $$imgs; do case "$$img" in *:$(TAG)) ;; *) echo "$$img";; esac; done); \
+	  [ -z "$$stale" ] && exit 0; sleep 2; \
+	done; echo "release: Argo CD did not apply $(TAG) within 120s (still: $$stale)"; exit 1
+	kubectl -n $(NS) rollout status $(addprefix deploy/,$(APPS)) --timeout=180s
 
 up: cluster secrets deploy ## Everything from zero
 
