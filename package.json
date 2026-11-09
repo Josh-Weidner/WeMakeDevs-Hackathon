@@ -13,5 +13,18 @@
     "typecheck": "pnpm build:shared && pnpm -r typecheck",
     "lint": "eslint .",
     "test": "pnpm build:shared && pnpm -r test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@opentelemetry/core>@opentelemetry/api": "1.10"
+      }
+    },
+    "//": "@elastic/transport pins @opentelemetry/core 2.x, whose peer range caps api <1.10; sdk-node needs api 1.10. The api is backward compatible within 1.x."
   }
 }
