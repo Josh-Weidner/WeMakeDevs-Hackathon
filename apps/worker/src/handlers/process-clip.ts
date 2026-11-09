@@ -38,7 +38,11 @@ export const ClipAnalysis = z.object({
   kind: z.enum(["connection", "highlight"]),
   summary: z.string().trim().min(1).transform((s) => s.slice(0, 600)),
   person: z
-    .object({ name: z.string().trim(), role: z.string().trim().default(""), company: z.string().trim().default("") })
+    .object({
+      name: z.string().trim().transform((s) => s.slice(0, 120)),
+      role: z.string().trim().default("").transform((s) => s.slice(0, 120)),
+      company: z.string().trim().default("").transform((s) => s.slice(0, 120)),
+    })
     .nullish(),
   linkedin_note: nullableString(LINKEDIN_NOTE_MAX),
   topic_tags: z.array(z.string().trim().min(1)).default([]).transform((t) => t.slice(0, 5)),

@@ -85,6 +85,26 @@ describe("process-clip handler", () => {
     expect(deps.clips.save.mock.calls[0]![1].result).toMatchObject({ linkedin_note: defaultLinkedInNote("Dana Ortiz", null) });
   });
 
+  it("truncates long person fields from the model before saving the contact and clip", async () => {
+    const longField = "x".repeat(130);
+    const { deps, handler } = setup({
+      ...connection,
+      person: { name: longField, role: longField, company: longField },
+    });
+
+    await handler(job());
+
+    expect(deps.contacts.save).toHaveBeenCalledWith(
+      `clip-${CLIP_ID}`,
+      expect.objectContaining({ contact_name: longField.slice(0, 120), role: longField.slice(0, 120), company: longField.slice(0, 120) }),
+      [0.1, 0.2],
+    );
+    expect(deps.clips.save.mock.calls[0]![1].result).toMatchObject({
+      kind: "connection",
+      person: { name: longField.slice(0, 120), role: longField.slice(0, 120), company: longField.slice(0, 120) },
+    });
+  });
+
   it("treats a 'connection' without a name as a highlight (never invents a person)", async () => {
     const { deps, handler } = setup({ ...connection, person: { name: "", role: "", company: "" } });
     await handler(job());
